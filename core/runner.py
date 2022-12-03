@@ -36,18 +36,15 @@ class Runner:
         _quoted_variables = list()
 
         for _, _node in fsa['node'].items():
-            for _v in _node['var'].values:
+            for _v in _node['var'].values():
                 _quoted_variables.append(_v['name'])
 
         _quoted_variables = list(set(_quoted_variables))
 
         for _var_name in _quoted_variables:
-            try:
-                _compiled_variables[_var_name] = var_class[variable_dict[_var_name]['type']](
-                    variable_dict['value'], _var_name
-                )
-            except Exception as e:
-                return False, f'Error in variable {_var_name}: {e.args[0]}'
+            _compiled_variables[_var_name] = var_class[variable_dict[_var_name]['type']](
+                variable_dict[_var_name]['value'], _var_name
+            )
 
         for _, _variable in _compiled_variables.items():
             if _variable.requirements['variable']:
@@ -62,28 +59,28 @@ class Runner:
 
         for _node_name in fsa['node-index']:
             _var_dict = dict()
-            for _ph_name, _var_term in fsa['node']['node_name']['var'].items():
+            for _ph_name, _var_term in fsa['node'][_node_name]['var'].items():
                 if _var_term['name'] is None:
                     return False, f"There is a vacant placeholder '{_ph_name}' in node '{_node_name}'."
                 _var_dict[_ph_name] = _compiled_variables[_var_term['name']]
-                _compiled_nodes[_node_name] = node_class[fsa['node'][_node_name]['type']](runtime_dict={
-                    'var': _var_dict,
-                    'name': _node_name
-                })
-                if not node_class[fsa['node'][_node_name]['type']].has_input:
-                    _start_nodes.append(_compiled_nodes[_node_name])
-                if fsa['node'][_node_name]['type'] == 'EndNode':
-                    _end_nodes.append(_compiled_nodes[_node_name])
+            _compiled_nodes[_node_name] = node_class[fsa['node'][_node_name]['type']](runtime_dict={
+                'var': _var_dict,
+                'name': _node_name
+            })
+            if not node_class[fsa['node'][_node_name]['type']].has_input:
+                _start_nodes.append(_compiled_nodes[_node_name])
+            if fsa['node'][_node_name]['type'] == 'EndNode':
+                _end_nodes.append(_compiled_nodes[_node_name])
 
-            if len(_start_nodes) != 1:
-                return False, f'There should be 1 start nodes in one FSA; found {len(_start_nodes)}.'
+        if len(_start_nodes) != 1:
+            return False, f'There should be 1 start nodes in one FSA; found {len(_start_nodes)}.'
 
-            if not len(_end_nodes):
-                return False, 'There should be at least 1 end nodes in one FSA.'
+        if not len(_end_nodes):
+            return False, 'There should be at least 1 end nodes in one FSA.'
 
         for _node_name in fsa['node-index']:
             _link_jump = dict()
-            for _key, _link_id in fsa['node'][_node_name]['out-link'].items:
+            for _key, _link_id in fsa['node'][_node_name]['out-link'].items():
                 if _link_id is None:
                     return False, f"Unlinked output '{_key}' detected in node '{_node_name}'."
                 _link_jump[_key] = _compiled_nodes[fsa['link'][_link_id]['to']]
@@ -99,8 +96,8 @@ class Runner:
         _error_message = ''
         self._interface.run_begin.emit()
         self._is_running = True
-        _current_node = self._entrance
-        _current_node_name = self._entrance.runtime['name']
+        _current_node = self._entrance[0]
+        _current_node_name = self._entrance[0].runtime['name']
         _output = None
 
         threading.Thread(target=self._tic).start()
