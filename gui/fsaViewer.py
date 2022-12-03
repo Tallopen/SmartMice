@@ -48,7 +48,7 @@ class Canvas(QGraphicsView):
         self.q_scene.addItem(self.q_pix_item)
         self.setScene(self.q_scene)
 
-        self.prev_mouse_pos = QPoint(0, 0)
+        self.prev_mouse_pos = QPointF(0, 0)
 
     def draw_pixmap(self, pixmap):
         self.q_pix_item.setPixmap(pixmap.toqpixmap())
@@ -64,23 +64,23 @@ class Canvas(QGraphicsView):
         return super(Canvas, self).resizeEvent(a0)
 
     def mouseMoveEvent(self, a0: QMouseEvent):
-        delta_pos = a0.pos() - self.prev_mouse_pos
-        self.prev_mouse_pos = a0.pos()
+        delta_pos = a0.position() - self.prev_mouse_pos
+        self.prev_mouse_pos = a0.position()
         if self.ready:
             if a0.buttons() == Qt.MouseButton.MiddleButton:
                 # this emits delta position rather than position, because position is seemingly unnecessary when you move the view around
                 self.middle_mouse_move.emit(delta_pos.x(), delta_pos.y())
             elif a0.buttons() == Qt.MouseButton.LeftButton:
-                self.left_mouse_move.emit(a0.pos().x()-4, a0.pos().y()-4)
+                self.left_mouse_move.emit(a0.position().x()-4, a0.position().y()-4)
             else:
-                self.mouse_move.emit(a0.pos().x()-4, a0.pos().y()-4)
+                self.mouse_move.emit(a0.position().x()-4, a0.position().y()-4)
         return super(Canvas, self).mouseMoveEvent(a0)
 
     def mousePressEvent(self, a0: QMouseEvent):
         if self.ready:
             self.pressed_button = a0.buttons()
             if self.pressed_button == Qt.MouseButton.LeftButton:
-                self.left_mouse_press.emit(a0.pos().x()-4, a0.pos().y()-4)
+                self.left_mouse_press.emit(a0.position().x()-4, a0.position().y()-4)
             elif a0.buttons() == Qt.MouseButton.MiddleButton:
                 self.setCursor(Qt.CursorShape.SizeAllCursor)
         return super(Canvas, self).mousePressEvent(a0)
@@ -88,9 +88,9 @@ class Canvas(QGraphicsView):
     def mouseReleaseEvent(self, a0: QMouseEvent):
         if self.ready:
             if self.pressed_button == Qt.MouseButton.LeftButton:
-                self.left_mouse_click.emit(a0.pos().x()-4, a0.pos().y()-4)
+                self.left_mouse_click.emit(a0.position().x()-4, a0.position().y()-4)
             if self.pressed_button == Qt.MouseButton.RightButton:
-                self.right_mouse_click.emit(a0.pos().x()-4, a0.pos().y()-4)
+                self.right_mouse_click.emit(a0.position().x()-4, a0.position().y()-4)
             elif self.pressed_button == Qt.MouseButton.MiddleButton:
                 self.setCursor(Qt.CursorShape.ArrowCursor)
         return super(Canvas, self).mouseReleaseEvent(a0)
@@ -110,7 +110,7 @@ class Canvas(QGraphicsView):
     def mouseDoubleClickEvent(self, a0: QMouseEvent) -> None:
         if self.ready:
             if a0.buttons() == Qt.MouseButton.LeftButton:
-                self.left_mouse_double_click.emit(a0.pos().x()-4, a0.pos().y()-4)
+                self.left_mouse_double_click.emit(a0.position().x()-4, a0.position().y()-4)
         return super(Canvas, self).mouseDoubleClickEvent(a0)
 
 
