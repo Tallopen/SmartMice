@@ -275,7 +275,7 @@ class CamEditor(QDialog):
 
     def start_video(self):
         if self.value_copy["ID"] is not None:
-            self.vd = cv2.VideoCapture(self.value_copy["ID"], cv2.CAP_DSHOW)
+            self.vd = cv2.VideoCapture(self.value_copy["ID"])
             if self.vd.isOpened():
                 self.stop_video = False
                 self.camera_init()
@@ -456,7 +456,7 @@ class MCam:
         if not os.path.isdir(self._folder):
             os.mkdir(self._folder)
 
-        self._vd = cv2.VideoCapture(self._value["ID"], cv2.CAP_DSHOW)
+        self._vd = cv2.VideoCapture(self._value["ID"])
         if self._vd.isOpened():
             self._recording = True
 

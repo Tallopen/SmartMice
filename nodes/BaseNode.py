@@ -41,7 +41,7 @@ class BaseNode:
         """
         run action of nodes.
         :param _record: the record to log in
-        :return: every id within length of self._output (which are numbers >= 0) can be returned. Note: if None is
-                 returned, the program will be terminated. If -1 is returned, the nodes will run again
+        :return: every node reference within length of self._output (which are numbers >= 0) can be returned. Note: if
+                 None is returned, the program will be terminated. If self is returned, the node will run again
         """
         return None
