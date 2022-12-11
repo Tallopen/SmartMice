@@ -290,6 +290,8 @@ class CamEditor(QDialog):
 
     def camera_init(self):
         self.vd.set(cv2.CAP_PROP_FPS, 30)
+        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         for key, value in self.scroll_item.items():
             value[0].setValue(self.value[key])
             value[1].setValue(self.value[key])
@@ -382,7 +384,8 @@ class CameraWindow(QWidget):
         self.show()
 
     def update_img(self, img):
-        pix_map = QPixmap(QImage(img.tobytes(), img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format.Format_BGR888)).scaled(self.CameraReturn.width()-2, self.CameraReturn.height()-2)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pix_map = QPixmap(QImage(img, img.shape[1], img.shape[0], img.shape[1]*img.shape[2], QImage.Format.Format_RGB888)).scaled(self.CameraReturn.width()-2, self.CameraReturn.height()-2)
         self.CameraReturn.draw_pixmap(pix_map)
 
 
@@ -460,6 +463,8 @@ class MCam:
         if self._vd.isOpened():
             self._recording = True
 
+            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
             self._vd.set(cv2.CAP_PROP_FPS, 30)
