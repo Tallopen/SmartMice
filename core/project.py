@@ -503,7 +503,8 @@ class Project:
     def get_brand_new_records(self):
         _record_list = []
         for _records in self._m["record-index"]:
-            if not self.record_get_properties(_records)["spent"]:
+            _res, _rcd = self.record_get_properties(_records)
+            if _res and not _rcd["spent"]:
                 _record_list.append(_records)
         return _record_list
 
@@ -1182,6 +1183,21 @@ class Project:
         else:
             return False, "Record already present"
 
+    def record_get_path(self, name):
+        """
+        get the path of certain record
+        note: this path may not exist.
+        :param name: the name of the record
+        :return:
+        (True, Value) - variable property
+        (False, "Message") - Failed fetching property, message returned
+        """
+        if name not in self._m["record-index"]:
+            return False, "Record does not exist"
+
+        return True, (os.path.join(self._m["record"][name]["path"], name + ".smrprop"),
+                      os.path.join(self._m["record"][name]["path"], name + ".smrdata"))
+
     def record_get_properties(self, name):
         """
         get the value of all record properties
@@ -1194,10 +1210,13 @@ class Project:
             return False, "Record does not exist"
 
         _prop_file_name = os.path.join(self._m["record"][name]["path"], name + ".smrprop")
-        with open(_prop_file_name, 'rb') as f:
-            _property = pickle.load(f)
+        if os.path.isfile(_prop_file_name):
+            with open(_prop_file_name, 'rb') as f:
+                _property = pickle.load(f)
+        else:
+            return False, "Record file does not exist, may have been renamed, moved or deleted. Open record browser to check and fix."
 
-        return copy.deepcopy(_property)
+        return True, copy.deepcopy(_property)
 
     def record_list(self):
         """
@@ -1416,7 +1435,12 @@ class Project:
         _selected_fsa = self._m["fsa"][self._selected_fsa_name]
 
         if record_name in self._m["record"]:
-            if self.record_get_properties(record_name)["spent"]:
+            _res, _rcd = self.record_get_properties(record_name)
+
+            if not _res:
+                return False, f"Cannot match file for Record {record_name}. Open record browser to fix."
+
+            if _rcd["spent"]:
                 return False, f"Record {record_name} is spent, and should not be used twice."
 
             self.save()

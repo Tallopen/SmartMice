@@ -436,7 +436,7 @@ class FSAViewer(QWidget):
 
     def left_mouse_click(self, _x, _y):
         _x, _y = self.draw2fsa_cvt(_x, _y)
-        if self.mode == MODE_DEFAULT:
+        if self.mode == MODE_DEFAULT and self.selected_fsa:
             if not self.shift_held:
                 self.selected_nodes[self.selected_fsa] = set()
                 self.selected_links[self.selected_fsa] = set()
@@ -541,7 +541,7 @@ class FSAViewer(QWidget):
 
     def left_mouse_press(self, _x, _y):
         _x, _y = self.draw2fsa_cvt(_x, _y)
-        if self.mode == MODE_DEFAULT:
+        if self.mode == MODE_DEFAULT and self.selected_fsa:
             if self.hovered_node not in self.selected_nodes[self.selected_fsa]:
                 self.selection_box_pt1 = (_x, _y)
             else:

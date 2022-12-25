@@ -189,7 +189,7 @@ class CamEditor(QDialog):
 
         self.setWindowTitle("Set MCam Parameter")
         self.label_2.setText(f"{var_name}: (0x0)")
-        self.pushButton_2.setText(QCoreApplication.translate("Dialog", u"Set ID", None))
+        self.pushButton_2.setText("Set ID")
         self.pushButton_2.clicked.connect(self.set_camera_id)
 
         self.CameraReturn.left_mouse_press.connect(self.set_roi_begin)
@@ -290,8 +290,8 @@ class CamEditor(QDialog):
 
     def camera_init(self):
         self.vd.set(cv2.CAP_PROP_FPS, 30)
-        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
-        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         for key, value in self.scroll_item.items():
             value[0].setValue(self.value[key])
             value[1].setValue(self.value[key])
@@ -463,8 +463,8 @@ class MCam:
         if self._vd.isOpened():
             self._recording = True
 
-            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
-            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
             self._vd.set(cv2.CAP_PROP_FPS, 30)

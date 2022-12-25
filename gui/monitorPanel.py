@@ -171,9 +171,11 @@ class MonitorPanel(QWidget):
                     self.tableWidget.scrollToBottom()
 
                 # LCD
-                _record_last_time = self.guiMain.project.record_get_properties(name)["length"]
-                self.lcdNumber.display(_record_last_time // 60)
-                self.lcdNumber_2.display(int(_record_last_time % 60))
+                _res, _rcd_fetched = self.guiMain.project.record_get_properties(name)
+                if _res:
+                    _record_last_time = _rcd_fetched["length"]
+                    self.lcdNumber.display(_record_last_time // 60)
+                    self.lcdNumber_2.display(int(_record_last_time % 60))
 
     def record_table_add_last_line(self, content):
         self.tableWidget.insertRow(self.tableWidget.rowCount())

@@ -8,7 +8,7 @@ from core.project import Project
 from functools import partial
 from gui.variableManager import GUIVariableManager
 from gui.FSAToolbox import FSAToolbox
-from gui.MonitorPanel import MonitorPanel
+from gui.monitorPanel import MonitorPanel
 from gui.resourceManager import ResourceManager
 from gui.fsaViewer import FSAViewer
 from interface.action import History
@@ -18,6 +18,7 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
 import shutil
+from smtools.recordBrowser import RecordBrowser
 
 
 APP_STATE_BASIC = 0
@@ -136,6 +137,7 @@ class GUIMain(QMainWindow):
         # Tools menu
         self.actionAnalyser = QAction(self)
         self.actionRecord_Browser = QAction(self)
+        self.actionRecord_Browser.triggered.connect(self._show_record_browser)
         self.actionData_Transfer = QAction(self)
 
         # FSA menu
@@ -157,10 +159,6 @@ class GUIMain(QMainWindow):
         self.actionDelete_Record.setObjectName(u"actionDelete_Record")
         self.actionLay_Out = QAction(self)
         self.actionLay_Out.setObjectName(u"actionLay_Out")
-        self.actionLoad_Record = QAction(self)
-        self.actionLoad_Record.setObjectName(u"actionLoad_Record")
-        self.actionAdd_Attachments_to_Record = QAction(self)
-        self.actionAdd_Attachments_to_Record.setObjectName(u"actionAdd_Attachments_to_Record")
         self.actionRun = QAction(self)
         self.actionRun.setObjectName(u"actionRun")
 
@@ -215,8 +213,6 @@ class GUIMain(QMainWindow):
         self.menuFSA.addAction(self.actionDelete_FSA)
         self.menuFSA.addSeparator()
         self.menuFSA.addAction(self.actionNew_Record)
-        self.menuFSA.addAction(self.actionLoad_Record)
-        self.menuFSA.addAction(self.actionAdd_Attachments_to_Record)
         self.menuFSA.addAction(self.actionDelete_Record)
         self.menuFSA.addSeparator()
         self.menuFSA.addAction(self.actionLay_Out)
@@ -248,8 +244,6 @@ class GUIMain(QMainWindow):
         self.actionNew_Record.setText(QCoreApplication.translate("self", u"New Record", None))
         self.actionDelete_Record.setText(QCoreApplication.translate("self", u"Remove Selected Record", None))
         self.actionLay_Out.setText(QCoreApplication.translate("self", u"Automatic Layout", None))
-        self.actionLoad_Record.setText(QCoreApplication.translate("self", u"Load Record", None))
-        self.actionAdd_Attachments_to_Record.setText(QCoreApplication.translate("self", u"Add Attachments to Record ...", None))
         self.actionFSA_Toolbar.setText(QCoreApplication.translate("self", u"FSA Toolbox", None))
         self.actionRun.setText(QCoreApplication.translate("self", u"Run...", None))
         self.menuFile.setTitle(QCoreApplication.translate("self", u"File", None))
@@ -260,8 +254,8 @@ class GUIMain(QMainWindow):
 
         self.menu_list = [
             self.actionNew_Project, self.actionOpen_Project, self.menuRecent_Project, self.actionClose_Project,
-            self.actionNew_FSA, self.actionDelete_FSA, self.actionNew_Record, self.actionLoad_Record, self.actionData_Export,
-            self.actionDuplicate_FSA, self.actionDelete_Record, self.actionAdd_Attachments_to_Record, self.actionDuplicate_FSA,
+            self.actionNew_FSA, self.actionDelete_FSA, self.actionNew_Record, self.actionData_Export,
+            self.actionDuplicate_FSA, self.actionDelete_Record, self.actionDuplicate_FSA,
             self.actionLay_Out, self.actionRun, self.actionSave_Project, self.actionResource_Manager,
             self.actionFSA_Viewer, self.actionVariable_Manager, self.actionMonitor_Array, self.actionFSA_Toolbar
         ]
@@ -345,7 +339,6 @@ class GUIMain(QMainWindow):
 
                 self.actionNew_FSA.setEnabled(True)
                 self.actionNew_Record.setEnabled(True)
-                self.actionLoad_Record.setEnabled(True)
 
                 self.actionData_Export.setEnabled(True)
 
@@ -358,7 +351,6 @@ class GUIMain(QMainWindow):
 
             if app_state == APP_STATE_RECORD_SELECTED:
                 self.actionDelete_Record.setEnabled(True)
-                self.actionAdd_Attachments_to_Record.setEnabled(True)
 
             if not (not self.opened_fsa):
                 self.actionLay_Out.setEnabled(True)
@@ -388,7 +380,7 @@ class GUIMain(QMainWindow):
 
         _contact, _ = QInputDialog.getText(self, "New Project", "Please enter your name below before proceeding on: ")
         if not _contact:
-            QMessageBox.warning(self, "New Project", "Illegal contact")
+            QMessageBox.warning(self, "New Project", "Illegal name")
             return
         filepath, _ = QFileDialog.getSaveFileName(self, "New Project", filter="SmartMice 2 Project File (*.sm2)")
         if not (not filepath):
@@ -500,6 +492,7 @@ class GUIMain(QMainWindow):
         self.interface.record_name_change.connect(self.monitor_panel.record_name_change)
         self.interface.record_logged.connect(self.monitor_panel.record_table_add_last_line)
         self.interface.tick.connect(self.monitor_panel.tick)
+        self.monitor_panel.show()
 
     def close_project(self):
         if not self.saved:
@@ -707,3 +700,10 @@ class GUIMain(QMainWindow):
             return self.project.link_add(link_id[1], False, fsa_name)
         else:
             return self.project.link_remove(link_id[0], fsa_name)
+
+    def _show_record_browser(self):
+        if self.project is not None:
+            self._browser = RecordBrowser(self.project)
+            self._browser.show()
+        else:
+            QMessageBox.critical(self, "Record browser error", "Record browser can't be started, since no project is open.")

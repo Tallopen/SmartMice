@@ -365,7 +365,11 @@ class ResourceManager(QWidget):
                 self.project_tree_record_items[name].setSelected(True)
                 self.project_tree_record_items[name].parent().setExpanded(True)
                 self.project_tree_record_items[name].parent().parent().setExpanded(True)
-                self.renew_property_table("record", self.guiMain.project.record_get_properties(name))
+                _res, _rcd = self.guiMain.project.record_get_properties(name)
+                if _res:
+                    self.renew_property_table("record", _rcd)
+                else:
+                    QMessageBox.critical(self, "Record Fetch Error", "Requested record does not exist, may have been renamed, moved or deleted. Open record browser to fix this.")
                 self.guiMain.set_app_state(3, 0)
             self.locked = False
 
