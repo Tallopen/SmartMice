@@ -35,9 +35,12 @@ class Runner:
         _compiled_variables = dict()
         _quoted_variables = list()
 
-        for _, _node in fsa['node'].items():
-            for _v in _node['var'].values():
-                _quoted_variables.append(_v['name'])
+        for _node_name, _node in fsa['node'].items():
+            for _ph_name, _v in _node['var'].items():
+                if _v['name']:
+                    _quoted_variables.append(_v['name'])
+                else:
+                    return False, f"Unfilled placeholder '{_ph_name}' detected in node '{_node_name}'."
 
         _quoted_variables = list(set(_quoted_variables))
 

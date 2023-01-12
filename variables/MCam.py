@@ -4,6 +4,7 @@
 # Email     : gaosimin1@163.com
 
 import copy
+import gc
 import queue
 import threading
 
@@ -290,8 +291,8 @@ class CamEditor(QDialog):
 
     def camera_init(self):
         self.vd.set(cv2.CAP_PROP_FPS, 30)
-        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         for key, value in self.scroll_item.items():
             value[0].setValue(self.value[key])
             value[1].setValue(self.value[key])
@@ -463,8 +464,8 @@ class MCam:
         if self._vd.isOpened():
             self._recording = True
 
-            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
             self._vd.set(cv2.CAP_PROP_FPS, 30)
@@ -549,6 +550,8 @@ class MCam:
             self._img_count += 1
             if self._img_count == 1000:
                 _f.release()
+                del _f
+                gc.collect()
                 self._img_count = 0
                 self._save_batch_count += 1
                 file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")

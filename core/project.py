@@ -1473,7 +1473,7 @@ class Project:
                     shutil.copytree(node_class_dir_prev, self._node_class_dir)
 
         # main file
-        # do this on other cases
+        # do this in other cases
         # self.clear_memory()
 
         with open(self._main_file_path, 'wb') as f:
