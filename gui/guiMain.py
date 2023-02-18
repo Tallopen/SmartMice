@@ -703,7 +703,7 @@ class GUIMain(QMainWindow):
 
     def _show_record_browser(self):
         if self.project is not None:
-            self._browser = RecordBrowser(self.project)
+            self._browser = RecordBrowser(self.project, self)
             self._browser.show()
         else:
             QMessageBox.critical(self, "Record browser error", "Record browser can't be started, since no project is open.")

@@ -180,6 +180,9 @@ class ResourceManager(QWidget):
             self.project_tree_record_items[_key] = _new_tree_item
             self.project_tree_record_root_item.addChild(_new_tree_item)
 
+        self.projectTreeView.expandAll()
+        self.projectTreeView.sortItems(0, Qt.SortOrder.AscendingOrder)
+
     def renew_property_table(self, _type, _props: dict):
         qb = QBrush(QColor(220, 220, 220))
         self.property_table = dict()

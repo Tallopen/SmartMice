@@ -532,6 +532,8 @@ class MCam:
                 self._img_count += 1
             if self._img_count == 1000:
                 _f.release()
+                del _f
+                gc.collect()
                 self._img_count = 0
                 self._save_batch_count += 1
                 file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
