@@ -5,10 +5,131 @@
 
 
 import copy
+import math
+import threading
+import time
+
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtOpenGLWidgets import *
 from PyQt6.QtWidgets import *
+from PyQt6 import QtOpenGL
+import serial
+from serial.tools import list_ports
+
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+
+import numpy as np
+import quaternion
+
+
+class VRBallVisualizer(QOpenGLWidget):
+
+    def __init__(self, *args, **kwargs):
+        super(VRBallVisualizer, self).__init__(*args, **kwargs)
+
+        self._x = 8
+        self._y = 0
+        self._z = 0
+
+        self.radius = 2
+
+        self.main_axis_dots = []
+        for angle_id in range(600):
+            _x = self.radius * math.cos(angle_id * math.pi / 300)
+            _y = self.radius * math.sin(angle_id * math.pi / 300)
+            self.main_axis_dots.append([_x, _y, 0])
+            self.main_axis_dots.append([_y, 0, _x])
+            self.main_axis_dots.append([0, _x, _y])
+        self.main_axis_dots = np.array(self.main_axis_dots, dtype=float)
+
+        self.latitude_dots = []
+        for h in range(1, 8):
+            sub_radius = self.radius * math.sqrt(1 - (h/8) ** 2)
+            for angle_id in range(600):
+                _x = sub_radius * math.cos(angle_id * math.pi / 300)
+                _y = sub_radius * math.sin(angle_id * math.pi / 300)
+
+                self.latitude_dots.append([_x, _y, h / 8 * self.radius])
+                self.latitude_dots.append([_x, _y, -h / 8 * self.radius])
+        self.latitude_dots = np.array(self.latitude_dots, dtype=float)
+
+        self.x_axis_dots = []
+        for pt_id in range(1, 90):
+            self.x_axis_dots.append([0, 0, (pt_id-40)/40*self.radius])
+        self.x_axis_dots = np.array(self.x_axis_dots, dtype=float)
+
+        self.triangle_dots = np.array([
+            [-0.1*self.radius, 0, 1.25*self.radius],
+            [0.1*self.radius, 0, 1.25*self.radius],
+            [0, 0, 1.5*self.radius],
+            [0, -0.1*self.radius, 1.25*self.radius],
+            [0, 0.1*self.radius, 1.25*self.radius],
+            [0, 0, 1.5*self.radius],
+        ], dtype=float)
+
+        self.q = quaternion.quaternion(1, 0, 0, 0)
+
+    def initializeGL(self) -> None:
+        glClearColor(0, 0, 0, 1)
+        glEnable(GL_DEPTH_TEST)
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+        glEnable(GL_COLOR_MATERIAL)
+
+    def paintGL(self) -> None:
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        gluLookAt(8, 0, 0, 0, 0, 0, 0, 1, 0)
+
+        _main_axis_dots = quaternion.rotate_vectors(self.q, self.main_axis_dots)
+        _latitude_dots = quaternion.rotate_vectors(self.q, self.latitude_dots)
+        _x_axis_dots = quaternion.rotate_vectors(self.q, self.x_axis_dots)
+        _triangle_dots = quaternion.rotate_vectors(self.q, self.triangle_dots)
+
+        glColor3f(0.5, 1.0, 1.0)
+        glPointSize(3)
+
+        glBegin(GL_POINTS)
+        for dot in _main_axis_dots:
+            glVertex3f(-dot[1], -dot[2], -dot[0])
+        glEnd()
+
+        glPointSize(1)
+        glColor3f(1.0, 1.0, 1.0)
+        glBegin(GL_POINTS)
+        for dot in _latitude_dots:
+            glVertex3f(-dot[1], -dot[2], -dot[0])
+        glEnd()
+
+        glColor3f(0.3, 0.3, 1.0)
+        glPointSize(4)
+        glBegin(GL_POINTS)
+        for dot in _x_axis_dots:
+            glVertex3f(-dot[1], -dot[2], -dot[0])
+        glEnd()
+
+        glColor3f(0.3, 1.0, 0.3)
+        glBegin(GL_TRIANGLES)
+        for dot in _triangle_dots:
+            glVertex3f(-dot[1], -dot[2], -dot[0])
+        glEnd()
+
+    def resizeGL(self, w: int, h: int) -> None:
+        glViewport(0, 0, w, h)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(45, w / h, 0.01, 1000)
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        gluLookAt(8, 0, 0, 0, 0, 0, 0, 1, 0)
+
+    def set_view_point(self, _q):
+        self.q = _q
+        self.update()
 
 
 class VRBallEditor(QDialog):
@@ -30,12 +151,12 @@ class VRBallEditor(QDialog):
 
         self.horizontalLayout_3.addWidget(self.label_2)
 
-        self.yawScalingSpin = QDoubleSpinBox(self)
-        self.yawScalingSpin.setMaximum(1000)
-        self.yawScalingSpin.setSingleStep(0.01)
-        self.yawScalingSpin.setValue(1)
+        self.pitchScalingSpin = QDoubleSpinBox(self)
+        self.pitchScalingSpin.setMaximum(1000)
+        self.pitchScalingSpin.setSingleStep(0.01)
+        self.pitchScalingSpin.setValue(1)
 
-        self.horizontalLayout_3.addWidget(self.yawScalingSpin)
+        self.horizontalLayout_3.addWidget(self.pitchScalingSpin)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
@@ -44,12 +165,12 @@ class VRBallEditor(QDialog):
 
         self.horizontalLayout_4.addWidget(self.label_3)
 
-        self.pitchScalingSpin = QDoubleSpinBox(self)
-        self.pitchScalingSpin.setMaximum(1000)
-        self.pitchScalingSpin.setSingleStep(0.01)
-        self.pitchScalingSpin.setValue(1)
+        self.rollScalingSpin = QDoubleSpinBox(self)
+        self.rollScalingSpin.setMaximum(1000)
+        self.rollScalingSpin.setSingleStep(0.01)
+        self.rollScalingSpin.setValue(1)
 
-        self.horizontalLayout_4.addWidget(self.pitchScalingSpin)
+        self.horizontalLayout_4.addWidget(self.rollScalingSpin)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_4)
 
@@ -58,13 +179,13 @@ class VRBallEditor(QDialog):
 
         self.horizontalLayout_5.addWidget(self.label_6)
 
-        self.rollScalingSpin = QDoubleSpinBox(self)
-        self.rollScalingSpin.setEnabled(False)
-        self.rollScalingSpin.setMaximum(1000)
-        self.rollScalingSpin.setSingleStep(0.01)
-        self.rollScalingSpin.setValue(1)
+        self.yawScalingSpin = QDoubleSpinBox(self)
+        self.yawScalingSpin.setEnabled(False)
+        self.yawScalingSpin.setMaximum(1000)
+        self.yawScalingSpin.setSingleStep(0.01)
+        self.yawScalingSpin.setValue(1)
 
-        self.horizontalLayout_5.addWidget(self.rollScalingSpin)
+        self.horizontalLayout_5.addWidget(self.yawScalingSpin)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
 
@@ -79,7 +200,7 @@ class VRBallEditor(QDialog):
 
         self.dfCombo = QComboBox(self)
 
-        for _item in ["yaw", "yaw - pitch", "pitch - yaw", "yaw - pitch - roll"]:
+        for _item in ["yaw", "pitch - roll", "pitch - yaw", "yaw - pitch - roll"]:
             self.dfCombo.addItem(_item)
 
         self.verticalLayout_2.addWidget(self.dfCombo)
@@ -100,7 +221,7 @@ class VRBallEditor(QDialog):
         self.verticalLayout_2.addWidget(self.label_5)
 
         self.baudRateCombo = QComboBox(self)
-        for _bd_rate in ["300", "1200", "2400", "4800", "9600", "14400", "19200", "28800", "38400", "57600", "115200"]:
+        for _bd_rate in ["4800", "9600", "14400", "19200", "28800", "38400", "57600", "115200"]:
             self.baudRateCombo.addItem(_bd_rate)
         self.baudRateCombo.setEnabled(False)
 
@@ -121,6 +242,7 @@ class VRBallEditor(QDialog):
         self.verticalLayout_2.addWidget(self.portCombo)
 
         self.scanPort = QPushButton(self)
+        self.scanPort.clicked.connect(self.scan)
 
         self.verticalLayout_2.addWidget(self.scanPort)
 
@@ -160,7 +282,7 @@ class VRBallEditor(QDialog):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
 
-        self.ballPoseWidget = QOpenGLWidget(self)
+        self.ballPoseWidget = VRBallVisualizer(self)
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
@@ -251,9 +373,9 @@ class VRBallEditor(QDialog):
         self.dfCombo.setCurrentIndex(1)
         self.baudRateCombo.setCurrentIndex(10)
 
-        self.label_2.setText(QCoreApplication.translate("Form", u"Yaw scaling:", None))
-        self.label_3.setText(QCoreApplication.translate("Form", u"Pitch scaling:", None))
-        self.label_6.setText(QCoreApplication.translate("Form", u"Roll scaling:", None))
+        self.label_2.setText(QCoreApplication.translate("Form", u"Pitch scaling:", None))
+        self.label_3.setText(QCoreApplication.translate("Form", u"Roll scaling:", None))
+        self.label_6.setText(QCoreApplication.translate("Form", u"Yaw scaling:", None))
         self.poseResetButton.setText(QCoreApplication.translate("Form", u"Reset Ball Pose Estimation", None))
         self.label_4.setText(QCoreApplication.translate("Form", u"Degree of Freedom:", None))
 
@@ -288,14 +410,118 @@ class VRBallEditor(QDialog):
         self.label_11.setText(QCoreApplication.translate("Form", u"Acc. rot. angle", None))
         self.yawSpeedLabel.setText(QCoreApplication.translate("Form", u"0", None))
 
+        self.connectToPort.clicked.connect(self.connect)
+
         # add codes below
         self._value = value
+
+        self.port = None
+
+        self.quaternion_history = [
+            quaternion.quaternion(1, 0, 0, 0),
+            quaternion.quaternion(1, 0, 0, 0),
+            quaternion.quaternion(1, 0, 0, 0),
+            quaternion.quaternion(1, 0, 0, 0)
+        ]
+        self.time_stamp = [
+            time.time(),
+            time.time(),
+            time.time(),
+            time.time()
+        ]
+
+    def scan(self):
+        _ports = list_ports.comports()
+        _port_name_list = []
+        for _port in _ports:
+            _port_name_list.append(_port.name)
+
+        self.portCombo.clear()
+
+        if len(_ports):
+            self.portCombo.addItems(_port_name_list)
+            self.connectToPort.setEnabled(True)
+            self.baudRateCombo.setEnabled(True)
+        else:
+            self.connectToPort.setEnabled(False)
+            self.baudRateCombo.setEnabled(False)
+
+    def print(self, content: str):
+        self.portMessageBrowser.append(content)
+
+    def process_qu(self, _qu):
+        _q = quaternion.quaternion(_qu[0], _qu[1], _qu[2], _qu[3])
+        _t = time.time()
+
+        self.quaternion_history.append(_q)
+        self.quaternion_history.pop(0)
+        self.time_stamp.append(_t)
+        self.time_stamp.pop(0)
+
+        self.ballPoseWidget.set_view_point(_q)
+
+        # rotation axis
+        _rot_axis = quaternion.as_rotation_vector(_q)
+        _rot_axis = _rot_axis / np.linalg.norm(_rot_axis)
+        _rot_angle = (_q.angle() / math.pi * 180) % 360
+
+        self.rotAxisLabel.setText("({:.3f}, {:.3f}, {:.3f})".format(_rot_axis[0], _rot_axis[1], _rot_axis[2]))
+        self.rotAngleLabel.setText("{:.1f}".format(_rot_angle))
+
+        _q1 = self.quaternion_history[0].inverse() * self.quaternion_history[2]
+        _q2 = self.quaternion_history[1].inverse() * self.quaternion_history[3]
+
+        euler_alter = (quaternion.as_euler_angles(_q2) / (self.time_stamp[2] - self.time_stamp[0]) + quaternion.as_euler_angles(_q1) / (self.time_stamp[3] - self.time_stamp[1])) / 2
+        euler_alter = euler_alter / math.pi * 180
+
+        self.yawSpeedLabel.setText("{:.1f}".format(euler_alter[1]))
+        self.rollSpeedLabel.setText("{:.1f}".format(euler_alter[0]))
+        self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
+        # 上面这个计算有问题，别忘了
+
+    def begin_pose_check(self):
+        counter = 0
+        try:
+            while self.port.isOpen():
+                if self.port.in_waiting:
+                    _new_line = self.port.readline().decode('utf8')[:-2]
+                    counter += 1
+                    if counter == 2:
+                        counter = 0
+                        _preprocess = _new_line.split(',')
+                        if len(_preprocess) == 4:
+                            _qu = [int(_preprocess[_i]) * 0.000030517578125 for _i in range(4)]
+                            self.process_qu(_qu)
+                        else:
+                            self.print(_new_line)
+        except serial.SerialException as e:
+            self.print("Port disconnected.")
+            self.scanPort.setEnabled(True)
+            self.scan()
+        except Exception as e:
+            pass
+
+    def connect(self):
+        try:
+            baud_rate = int(self.baudRateCombo.currentText())
+            self.port = serial.Serial(self.portCombo.currentText(), baud_rate)
+            self.print(f"Port {self.port.name} connected successfully!")
+            self.connectToPort.setEnabled(False)
+            self.baudRateCombo.setEnabled(False)
+            threading.Thread(target=self.begin_pose_check).start()
+            self.scanPort.setEnabled(False)
+        except Exception as e:
+            QMessageBox.critical(self, "Connect to port", f"Connection error: {e.args}")
 
     def exec(self):
         _v = super(VRBallEditor, self).exec()
 
         if _v:
             return copy.deepcopy(self._value), _v
+
+        if self.port is not None and self.port.isOpen():
+            self.port.close()
+
         return None, _v
 
 
