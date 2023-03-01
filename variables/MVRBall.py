@@ -424,9 +424,9 @@ class VRBallEditor(QDialog):
             quaternion.quaternion(1, 0, 0, 0)
         ]
         self.time_stamp = [
-            time.time(),
-            time.time(),
-            time.time(),
+            time.time()-3e5,
+            time.time()-2e5,
+            time.time()-1e5,
             time.time()
         ]
 
