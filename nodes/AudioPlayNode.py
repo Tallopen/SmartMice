@@ -5,28 +5,33 @@
 
 
 from . import BaseNode
+import winsound
 
 
-class TimerStopNode(BaseNode):
+class AudioPlayNode(BaseNode):
 
     enabled = True
 
     gui_param = {
-        "group": "Control"
+        "group": "Communication"
     }
-    has_input = True
+    has_input = True       # unless this node is a start node or is disabled, should always be True
 
     template_dict = {
         "name": None,
         "show-name": False,
-        "type": "TimerStopNode",
+        "type": "AudioPlayNode",
         "x": 0,                             # position X of the node
         "y": 0,                             # position Y of the node
         "var": {
-            "timer": {
-                "type": "MTimer",
+            "audio list": {
+                "type": "MVarArray",
                 "name": None
             },
+            "index": {
+                "type": "MNum",
+                "name": None
+            }
         },
         "in-link": set(),
         "out-link": {
@@ -38,8 +43,11 @@ class TimerStopNode(BaseNode):
     out_enum = dict(zip(template_dict["out-link"].keys(), range(out_num)))
 
     def __init__(self, runtime_dict: dict):
-        super(TimerStopNode, self).__init__(runtime_dict)
+        super(AudioPlayNode, self).__init__(runtime_dict)
 
     def run(self, _record):
-        self.runtime["var"]["timer"].stop()
+        _audio_list = list(self.runtime["var"]["audio list"])
+        _index = int(self.runtime["var"]["index"].get_value())
+        _record.log("Hardware", "Audio Play", f'{self.runtime["name"]}[{_index}]')
+        winsound.PlaySound(_audio_list[_index][1], winsound.SND_ASYNC | winsound.SND_FILENAME)
         return self.runtime["jump"]["Done"]

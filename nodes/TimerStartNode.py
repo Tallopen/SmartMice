@@ -4,7 +4,10 @@
 # Email     : gaosimin1@163.com
 
 
-class TimerStartNode:
+from . import BaseNode
+
+
+class TimerStartNode(BaseNode):
 
     enabled = True
 
@@ -35,8 +38,7 @@ class TimerStartNode:
     out_enum = dict(zip(template_dict["out-link"].keys(), range(out_num)))
 
     def __init__(self, runtime_dict: dict):
-
-        self.runtime = runtime_dict
+        super(TimerStartNode, self).__init__(runtime_dict)
 
     def run(self, _record):
         self.runtime["var"]["timer"].start()

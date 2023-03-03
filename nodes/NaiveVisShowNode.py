@@ -4,7 +4,10 @@
 # Email     : gaosimin1@163.com
 
 
-class NaiveVisShowNode:
+from . import BaseNode
+
+
+class NaiveVisShowNode(BaseNode):
 
     enabled = True
 
@@ -35,8 +38,7 @@ class NaiveVisShowNode:
     out_enum = dict(zip(template_dict["out-link"].keys(), range(out_num)))
 
     def __init__(self, runtime_dict: dict):
-
-        self.runtime = runtime_dict
+        super(NaiveVisShowNode, self).__init__(runtime_dict)
 
     def run(self, _record):
         self.runtime["var"]["window"].show()

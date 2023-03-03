@@ -4,7 +4,10 @@
 # Email     : gaosimin1@163.com
 
 
-class CamStartNode:
+from . import BaseNode
+
+
+class CamStartNode(BaseNode):
 
     enabled = True
 
@@ -39,8 +42,7 @@ class CamStartNode:
     out_enum = dict(zip(template_dict["out-link"].keys(), range(out_num)))
 
     def __init__(self, runtime_dict: dict):
-
-        self.runtime = runtime_dict
+        super(CamStartNode, self).__init__(runtime_dict)
 
     def run(self, _record):
         self.runtime["var"]["camera"].run(self.runtime["var"]["save path"].get_value())

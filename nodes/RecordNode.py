@@ -4,7 +4,10 @@
 # Email     : gaosimin1@163.com
 
 
-class RecordNode:
+from . import BaseNode
+
+
+class RecordNode(BaseNode):
 
     enabled = True
 
@@ -35,8 +38,7 @@ class RecordNode:
     out_enum = dict(zip(template_dict["out-link"].keys(), range(out_num)))
 
     def __init__(self, runtime_dict: dict):
-
-        self.runtime = runtime_dict
+        super(RecordNode, self).__init__(runtime_dict)
 
     def run(self, _record):
         for _var_name, _var_value in self.runtime["var"]["variables"]:

@@ -516,11 +516,11 @@ class VRBallEditor(QDialog):
     def exec(self):
         _v = super(VRBallEditor, self).exec()
 
-        if _v:
-            return copy.deepcopy(self._value), _v
-
         if self.port is not None and self.port.isOpen():
             self.port.close()
+
+        if _v:
+            return copy.deepcopy(self._value), _v
 
         return None, _v
 

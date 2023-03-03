@@ -39,6 +39,8 @@ class Runner:
             for _ph_name, _v in _node['var'].items():
                 if _v['name']:
                     _quoted_variables.append(_v['name'])
+                    if variable_dict[_v['name']]['type'] == "MVarArray":
+                        _quoted_variables.extend(list(variable_dict[_v['name']]['value']))
                 else:
                     return False, f"Unfilled placeholder '{_ph_name}' detected in node '{_node_name}'."
 
@@ -66,10 +68,13 @@ class Runner:
                 if _var_term['name'] is None:
                     return False, f"There is a vacant placeholder '{_ph_name}' in node '{_node_name}'."
                 _var_dict[_ph_name] = _compiled_variables[_var_term['name']]
-            _compiled_nodes[_node_name] = node_class[fsa['node'][_node_name]['type']](runtime_dict={
-                'var': _var_dict,
-                'name': _node_name
-            })
+            try:
+                _compiled_nodes[_node_name] = node_class[fsa['node'][_node_name]['type']](runtime_dict={
+                    'var': _var_dict,
+                    'name': _node_name
+                })
+            except Exception as e:
+                return False, f"Error at node {_node_name}: {e.args}"
             if not node_class[fsa['node'][_node_name]['type']].has_input:
                 _start_nodes.append(_compiled_nodes[_node_name])
             if fsa['node'][_node_name]['type'] == 'EndNode':
