@@ -41,6 +41,7 @@ class MonitorPanel(QWidget):
 
         self.pauseButton = QToolButton(self)
         self.pauseButton.setObjectName(u"toolButton_3")
+        self.pauseButton.clicked.connect(self.pause)
 
         self.horizontalLayout.addWidget(self.pauseButton)
 
@@ -135,6 +136,9 @@ class MonitorPanel(QWidget):
         designated_record = get_record_name(_brand_new_record)[0]
         if designated_record:
             self.guiMain.run(designated_record)
+
+    def pause(self):
+        self.guiMain.pause()
 
     def record_selected(self, record_name):
         self.record_name = record_name

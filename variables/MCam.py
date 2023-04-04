@@ -291,7 +291,7 @@ class CamEditor(QDialog):
 
     def camera_init(self):
         self.vd.set(cv2.CAP_PROP_FPS, 30)
-        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         for key, value in self.scroll_item.items():
             value[0].setValue(self.value[key])
@@ -447,7 +447,7 @@ class MCam:
         self._window.my_resized.connect(self._window.set_size)
         self._window.img_updated.connect(self._window.update_img)
         self._window.to_close.connect(self._window.close)
-        self._current_img = None
+        self.current_img = None
         self._ready = False
 
         self._t3 = None
@@ -464,12 +464,12 @@ class MCam:
         if self._vd.isOpened():
             self._recording = True
 
-            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
             self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
             self._vd.set(cv2.CAP_PROP_FPS, 30)
-            self._current_img = self._vd.read()[1]
+            self.current_img = self._vd.read()[1]
 
             threading.Thread(target=self._cam_tick).start()
             threading.Thread(target=self._cam_save).start()
@@ -493,8 +493,8 @@ class MCam:
                 self.stop()
 
     def get_wh(self):
-        _w = self._current_img.shape[1]
-        _h = self._current_img.shape[0]
+        _w = self.current_img.shape[1]
+        _h = self.current_img.shape[0]
         _x0 = 0
         _x1 = _w
         _y0 = 0
@@ -525,7 +525,7 @@ class MCam:
                 _img = _current_img[1]
                 if self._value["ROI"] is not None:
                     _img = _img[_y0:_y1, _x0:_x1, :]
-                self._current_img = _img
+                self.current_img = _img
                 self._ready = True
                 _f.write(_img)
                 self._time_stamp.append(_current_img[0])
@@ -571,7 +571,7 @@ class MCam:
     def _update_window(self):
         while self._recording:
             if self._ready:
-                self._window.img_updated.emit(self._current_img)
+                self._window.img_updated.emit(self.current_img)
             time.sleep(0.03)
         self._window.to_close.emit()
 

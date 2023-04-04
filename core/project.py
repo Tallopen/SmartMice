@@ -517,7 +517,7 @@ class Project:
     def get_var_editor(self, var_name):
         var_dict = dict()
         for _var_name in self._m["var-index"]:
-            var_dict[_var_name] = self._m["var"][_var_name]["type"]
+            var_dict[_var_name] = copy.deepcopy(self._m["var"][_var_name])
         return self._var_class[self._m["var"][var_name]["type"]].value_editor(var_name, self._m["var"][var_name]["value"], var_dict).exec()
 
     def __init__(self, path, **kwargs):

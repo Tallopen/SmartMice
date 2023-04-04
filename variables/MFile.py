@@ -13,7 +13,7 @@ class FileValueEditor:
         self.value = value
 
     def exec(self):
-        path, _ = QFileDialog.getOpenFileName(None, "Get existing file path")
+        path, _ = QFileDialog.getOpenFileName(None, "Get existing file path", self.value)
         if os.path.isfile(path) and path != self.value:
             return path, True
         else:

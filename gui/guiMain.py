@@ -523,6 +523,10 @@ class GUIMain(QMainWindow):
         else:
             QMessageBox.critical(self, "Compilation Error", "During compilation, an error encountered:" + result[1])
 
+    def pause(self):
+        self.project.runner.pause()
+        self.set_app_state(APP_STATE_FSA_SELECTED, RUN_STATE_PAUSING)
+
     def run_terminated(self):
         self.set_app_state(APP_STATE_FSA_SELECTED, RUN_STATE_BASIC)
 

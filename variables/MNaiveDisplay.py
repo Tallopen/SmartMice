@@ -24,7 +24,7 @@ class NaiveDisplayEditor(QDialog):
     def __init__(self, var_name, value: set, ass: dict, *args):
         super(NaiveDisplayEditor, self).__init__()
 
-        available_variables = ass
+        available_variables = {_k: _i["type"] for _k, _i in ass.items()}
 
         _var_icon = dict()
         for _var_type in set(available_variables.values()):
@@ -92,14 +92,14 @@ class NaiveDisplayEditor(QDialog):
 
         # generate items
         _var_type_allowed = ("MNum", "MStr", "MTimer")
-        for _var_name, _var_type in ass.items():
+        for _var_name, _var_type in available_variables.items():
             if _var_name not in value and _var_type in _var_type_allowed:
                 _new_item = QListWidgetItem(_var_icon[_var_type], _var_name)
                 self.VarOut.addItem(_new_item)
 
         for _var_name in value:
-            if _var_name in ass and ass[_var_name] in _var_type_allowed:
-                _new_item = QListWidgetItem(_var_icon.get(ass.get(_var_name, None), _wrong_icon), _var_name)
+            if _var_name in available_variables and available_variables[_var_name] in _var_type_allowed:
+                _new_item = QListWidgetItem(_var_icon.get(available_variables.get(_var_name, None), _wrong_icon), _var_name)
             else:
                 _new_item = QListWidgetItem(_wrong_icon, _var_name)
             self.VarIn.addItem(_new_item)
