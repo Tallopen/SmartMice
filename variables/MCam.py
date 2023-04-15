@@ -291,8 +291,8 @@ class CamEditor(QDialog):
 
     def camera_init(self):
         self.vd.set(cv2.CAP_PROP_FPS, 30)
-        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
+        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         for key, value in self.scroll_item.items():
             value[0].setValue(self.value[key])
             value[1].setValue(self.value[key])
@@ -415,7 +415,7 @@ class MCam:
             "contrast": 20,
             "saturation": 128,
             "hue": 128,   # 0-180
-            "exposure": 10,
+            "exposure": -7,
             "gain": 1,
             "white balance": 4000,         # 3000-7000
             "gamma": 128,      # what's the range? ...
@@ -464,8 +464,8 @@ class MCam:
         if self._vd.isOpened():
             self._recording = True
 
-            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
+            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
             self._vd.set(cv2.CAP_PROP_FPS, 30)

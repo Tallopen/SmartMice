@@ -673,7 +673,8 @@ class TrackerEditor(QDialog):
             self.vd.destroy()
         self.currentCamera = None
         if self.CamVariablesCombo.currentText():
-            self.currentCamera = self.Cams[self.CamVariablesCombo.currentText()]
+            self._value["cam"] = self.CamVariablesCombo.currentText()
+            self.currentCamera = self.Cams[self._value["cam"]]
             self.vd = MyCamera(self.currentCamera)
             self.vd.img_change.connect(self.update_canvas)
             self.vd.start()
@@ -818,6 +819,97 @@ class TrackerEditor(QDialog):
         return None, _v
 
 
+class TrackingThread(QThread):
+
+    def __init__(self, variable, m_cam, coordinate_var, _record, cam_coor, pt_series, threshold):
+        super(TrackingThread, self).__init__()
+
+        self.variable = []
+        self.mCam = m_cam
+
+        count = 0
+        for _var_name, _ in coordinate_var:
+            self.variable.append(variable[_var_name])
+            count += 1
+            if count > 2:
+                break
+
+        self.record = _record
+        self.cam_coor = cam_coor
+        self.pt_series = pt_series
+        self.threshold = threshold
+
+        _src_x = [int(i[0]) for i in self.pt_series]
+        _src_y = [int(i[1]) for i in self.pt_series]
+
+        _dst_x = [int(i[2]) for i in self.pt_series]
+        _dst_y = [int(i[3]) for i in self.pt_series]
+        _min_src_x = self.cam_coor[0] - self.cam_coor[2] / 2
+        _min_src_y = self.cam_coor[1] - self.cam_coor[3] / 2
+        self.dst_bbox = [min(_dst_x), min(_dst_y), max(_dst_x), max(_dst_y)]
+
+        self.mask = np.zeros((self.dst_bbox[3] - self.dst_bbox[1], self.dst_bbox[2] - self.dst_bbox[0]), dtype=np.uint8)
+
+        self.src_points = np.array([i[:2] for i in self.pt_series], dtype=np.float32) - np.array([_min_src_x, _min_src_y], dtype=np.float32)
+        self.dst_points = np.array([i[2:] for i in self.pt_series], dtype=np.float32) - np.array([self.dst_bbox[0], self.dst_bbox[1]], dtype=np.float32)
+
+        rect = (-500, -500, 1500, 1500)
+        subdiv = cv2.Subdiv2D(rect)
+        for p in self.dst_points:
+            subdiv.insert((int(p[0]), int(p[1])))
+        _triangles = subdiv.getTriangleList()
+
+        self.vertex_indices = []
+        self.vertices = []
+        for triangle in _triangles:
+            pt1, pt2, pt3 = triangle.reshape(3, 2)
+            self.vertex_indices.append(np.array([subdiv.findNearest(pt)[0] for pt in (pt1, pt2, pt3)], dtype=int))
+            self.vertices.append(np.array([pt1, pt2, pt3], dtype=np.int16))
+
+        cv2.fillPoly(self.mask, [np.int32(self.dst_points)-1], (1.0, 1.0, 1.0), 16, 0)
+        self.continue_on = True
+
+    def run(self):
+        while self.continue_on:
+            img = copy.deepcopy(self.mCam.current_img)
+            img = cv2.resize(img, [int(self.cam_coor[2]), int(self.cam_coor[3])])
+
+            temp_img = np.zeros([int(self.dst_bbox[3] - self.dst_bbox[1]), int(self.dst_bbox[2] - self.dst_bbox[0]), 3], np.uint8) * 255
+
+            for vertex_id, vertex_group in enumerate(self.vertex_indices):
+                H = cv2.getAffineTransform(self.src_points[vertex_group - 4], self.dst_points[vertex_group - 4])
+                warped_triangle = cv2.warpAffine(img, H, (temp_img.shape[1], temp_img.shape[0]))
+                mask = np.zeros_like(temp_img, dtype=np.uint8)
+                cv2.fillPoly(mask, [np.int32(self.vertices[vertex_id])], (1.0, 1.0, 1.0), 16, 0)
+                temp_img += warped_triangle * mask
+
+            temp_img = cv2.cvtColor(temp_img, cv2.COLOR_RGB2GRAY)
+
+            _, temp_img = cv2.threshold(temp_img, self.threshold, 255, cv2.THRESH_BINARY)
+
+            temp_img = cv2.bitwise_not(temp_img)
+            temp_img *= self.mask
+
+            temp_img = cv2.morphologyEx(temp_img, cv2.MORPH_CLOSE, np.ones([4, 4], np.uint8))
+            temp_img = cv2.morphologyEx(temp_img, cv2.MORPH_OPEN, np.ones([4, 4], np.uint8))
+            _, _, stats, centroids = cv2.connectedComponentsWithStats(temp_img, connectivity=8)
+
+            centroids += np.array([self.dst_bbox[0], self.dst_bbox[1]], dtype=np.float32)
+
+            if stats.shape[0] > 1:
+                max_component_id = np.argmax(stats[1:, 4]) + 1
+                self.variable[0].set_value(round(centroids[max_component_id, 0], 2))
+                self.variable[1].set_value(round(centroids[max_component_id, 1], 2))
+
+            # enable lines below to show tracked position marked as a black circle, do not delete indents
+            #     cv2.circle(temp_img, [int(centroids[max_component_id, 0] - self.dst_bbox[0]), int(centroids[max_component_id, 1] - self.dst_bbox[1])], 4, [0, 0, 0], 1)
+            #
+            # cv2.imshow("test", temp_img)
+            # cv2.waitKey(1)
+
+            time.sleep(0.04)
+
+
 class MTracker:
 
     requirements = {
@@ -855,8 +947,19 @@ class MTracker:
         self._record = None
         self.variable = dict()
 
+        self.t_thread = None
+
     def get_value(self):
         return self._value
+
+    def start(self, coordinate_var, _record):
+        self.t_thread = TrackingThread(self.variable, self.variable[self._value["cam"]],
+                                       coordinate_var, _record, self._value["cam-bbox"],
+                                       self._value["geo-ser"]["pt-closed"], self._value["thresh"])
+        self.t_thread.start()
+
+    def stop(self):
+        self.t_thread.continue_on = False
 
     def set_record(self, _record):
         self._record = _record

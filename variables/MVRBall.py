@@ -9,6 +9,8 @@ import math
 import threading
 import time
 
+import socket
+
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtOpenGLWidgets import *
@@ -154,7 +156,7 @@ class VRBallEditor(QDialog):
         self.pitchScalingSpin = QDoubleSpinBox(self)
         self.pitchScalingSpin.setMaximum(1000)
         self.pitchScalingSpin.setSingleStep(0.01)
-        self.pitchScalingSpin.setValue(1)
+        self.pitchScalingSpin.setValue(25)
 
         self.horizontalLayout_3.addWidget(self.pitchScalingSpin)
 
@@ -168,7 +170,7 @@ class VRBallEditor(QDialog):
         self.rollScalingSpin = QDoubleSpinBox(self)
         self.rollScalingSpin.setMaximum(1000)
         self.rollScalingSpin.setSingleStep(0.01)
-        self.rollScalingSpin.setValue(1)
+        self.rollScalingSpin.setValue(25)
 
         self.horizontalLayout_4.addWidget(self.rollScalingSpin)
 
@@ -183,7 +185,7 @@ class VRBallEditor(QDialog):
         self.yawScalingSpin.setEnabled(False)
         self.yawScalingSpin.setMaximum(1000)
         self.yawScalingSpin.setSingleStep(0.01)
-        self.yawScalingSpin.setValue(1)
+        self.yawScalingSpin.setValue(25)
 
         self.horizontalLayout_5.addWidget(self.yawScalingSpin)
 
@@ -430,6 +432,14 @@ class VRBallEditor(QDialog):
             time.time()
         ]
 
+        self.acc_x = 0
+        self.acc_y = 0
+
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_port_id = 4514
+
+        self.counter = 0
+
     def scan(self):
         _ports = list_ports.comports()
         _port_name_list = []
@@ -468,19 +478,40 @@ class VRBallEditor(QDialog):
         self.rotAxisLabel.setText("({:.3f}, {:.3f}, {:.3f})".format(_rot_axis[0], _rot_axis[1], _rot_axis[2]))
         self.rotAngleLabel.setText("{:.1f}".format(_rot_angle))
 
-        _q1 = self.quaternion_history[0].inverse() * self.quaternion_history[2]
-        _q2 = self.quaternion_history[1].inverse() * self.quaternion_history[3]
+        _q1 = self.quaternion_history[2] / self.quaternion_history[0]
+        _q2 = self.quaternion_history[3] / self.quaternion_history[1]
+        _q_prime = (_q1 * _q2).sqrt()
+        _t_prime = (1 / (self.time_stamp[2] - self.time_stamp[0]) + 1 / (self.time_stamp[3] - self.time_stamp[1])) / 2
 
-        euler_alter = (quaternion.as_euler_angles(_q2) / (self.time_stamp[2] - self.time_stamp[0]) + quaternion.as_euler_angles(_q1) / (self.time_stamp[3] - self.time_stamp[1])) / 2
-        euler_alter = euler_alter / math.pi * 180
+        lspeed = quaternion.rotate_vectors(_q_prime, np.eye(3))
+        lspeed = (lspeed / np.diag(lspeed) - np.eye(3)) / _t_prime
+        lspeed = (- lspeed + np.transpose(lspeed)) / 2
+        lspeed_x = lspeed[0, 2] * self.pitchScalingSpin.value() * 0.0005
+        lspeed_y = lspeed[1, 2] * self.rollScalingSpin.value() * 0.0005
 
-        self.yawSpeedLabel.setText("{:.1f}".format(euler_alter[1]))
-        self.rollSpeedLabel.setText("{:.1f}".format(euler_alter[0]))
-        self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
-        # 上面这个计算有问题，别忘了
+        self.rollSpeedLabel.setText("{:.2f}".format(lspeed_x))
+        self.yawSpeedLabel.setText("{:.2f}".format(lspeed_y))
+        # self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
+
+        if 50 >= abs(lspeed_x) >= 1e-5:
+            self.acc_x += lspeed_x
+        if 50 >= abs(lspeed_y) >= 1e-5:
+            self.acc_y += lspeed_y
+
+        self.acc_x = round(self.acc_x, 5)
+        self.acc_y = round(self.acc_y, 5)
+
+        self.placeOffsetLabel.setText(f"({self.acc_x}, {self.acc_y})")
+
+        if self.counter > 4:
+            server_address = ("192.168.137.1", self.udp_port_id)
+            self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
+        else:
+            self.counter += 1
 
     def begin_pose_check(self):
         counter = 0
+        self.counter = 0
         try:
             while self.port.isOpen():
                 if self.port.in_waiting:
@@ -518,6 +549,8 @@ class VRBallEditor(QDialog):
 
         if self.port is not None and self.port.isOpen():
             self.port.close()
+
+        self.client_socket.close()
 
         if _v:
             return copy.deepcopy(self._value), _v

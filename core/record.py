@@ -21,7 +21,8 @@ class Record:
         self._data_accessory = []
 
     def log(self, _type, name, value):
-        _log = [round(time.time() - self._start_time, 4), _type, name, value]
+        _t = time.time()
+        _log = [round(_t - self._start_time, 4), _type, name, value]
         self._info.append(_log)
         self._interface.record_logged.emit(_log)
 
