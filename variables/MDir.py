@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+# created at: 2022/7/16 19:46
+# author    : Gao Kai
+# Email     : gaosimin1@163.com
+import os.path
+
+from PyQt6.QtWidgets import QFileDialog
+
+
+class DirectoryValueEditor:
+
+    def __init__(self, var_name, value: str, ass: dict, *args):
+        self.value = value
+
+    def exec(self):
+        path = QFileDialog.getExistingDirectory(None, "Get existing directory", self.value)
+        if os.path.isdir(path) and path != self.value:
+            return path, True
+        else:
+            return None, False
+
+
+class MDir:
+
+    requirements = {
+        "variable": False,
+        "runner": False,
+        "interface": False
+    }
+    value_editor = DirectoryValueEditor
+    filter_func = str
+
+    gui_param = {
+        "menu_name": "Existing Directory",
+        "group": "Hardware"
+    }
+    template_dict = {
+        "type": "MDir",
+
+        "name": None,
+        "value": "",
+
+        "quote": set()
+    }
+
+    def __init__(self, value, _name):
+
+        self._value = value
+        self._name = _name
+        self._record = None
+        self.variable = dict()
+
+    def get_value(self):
+        return self._value
+
+    def set_record(self, _record):
+        self._record = _record

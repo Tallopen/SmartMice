@@ -814,9 +814,9 @@ class TrackerEditor(QDialog):
             pass
 
         if _v:
-            return copy.deepcopy(self._value), _v
+            return copy.deepcopy(self._value), True
 
-        return None, _v
+        return None, False
 
 
 class TrackingThread(QThread):
