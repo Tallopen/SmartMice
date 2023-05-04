@@ -569,7 +569,7 @@ class MVRBall:
     filter_func = set
 
     gui_param = {
-        "menu_name": "Variable Set",
+        "menu_name": "VR Ball Sensor Interface",
         "group": "Hardware"
     }
     template_dict = {

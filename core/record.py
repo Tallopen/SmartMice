@@ -50,3 +50,6 @@ class Record:
 
     def set_start_time(self, _time):
         self._start_time = _time
+
+    def get_a_parent(self):
+        return self._interface.guiMain

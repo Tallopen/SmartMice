@@ -31,10 +31,10 @@ class MyThread(QThread):
 
 CAMERA_VALUES = {
     "brightness": (-128, 128, cv2.CAP_PROP_BRIGHTNESS),
-    "contrast": (0, 128, cv2.CAP_PROP_CONTRAST),
-    "gain": (1, 16, cv2.CAP_PROP_GAIN),
+    "contrast": (0, 256, cv2.CAP_PROP_CONTRAST),
+    "gain": (1, 64, cv2.CAP_PROP_GAIN),
     "saturation": (0, 256, cv2.CAP_PROP_SATURATION),
-    "exposure": (-16, 16, cv2.CAP_PROP_EXPOSURE),
+    "exposure": (-12, 0, cv2.CAP_PROP_EXPOSURE),
     "hue": (0, 180, cv2.CAP_PROP_HUE),
     "white balance": (0, 10000, cv2.CAP_PROP_WB_TEMPERATURE),
     "gamma": (0, 256, cv2.CAP_PROP_GAMMA)
@@ -415,8 +415,8 @@ class MCam:
             "contrast": 20,
             "saturation": 128,
             "hue": 128,   # 0-180
-            "exposure": -7,
-            "gain": 1,
+            "exposure": -8,
+            "gain": 6,
             "white balance": 4000,         # 3000-7000
             "gamma": 128,      # what's the range? ...
             "ROI": None
