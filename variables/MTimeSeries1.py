@@ -339,9 +339,11 @@ class TSEditor(QDialog):
 
 
 class TSDisplay(QWidget):
+    show_event = pyqtSignal(int, int)
+    close_event = pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
-        super(TSDisplay, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super(TSDisplay, self).__init__()
 
         self.resize(600, 400)
         self.horizontalLayout = QHBoxLayout(self)
@@ -350,6 +352,17 @@ class TSDisplay(QWidget):
         self.horizontalLayout.addWidget(self.graphicsView)
 
         self.setWindowTitle(u"1D Time Series by Serial")
+
+    @pyqtSlot(int, int)
+    def show_event_rec(self, _xlim, _ylim):
+        self.graphicsView.reinitialize()
+        self.graphicsView.set_xlim(_xlim)
+        self.graphicsView.set_ylim(_ylim)
+        self.show()
+
+    @pyqtSlot()
+    def close_event_rec(self):
+        self.close()
 
 
 class TSThread(QThread):
@@ -375,13 +388,15 @@ class TSThread(QThread):
         try:
             while self._p.isOpen():
                 while self._p.inWaiting():
-                    _ndata = self._p.readline().decode("utf-8")
-                    _ts = self.runner.time()
                     try:
+                        _ndata = self._p.readline().decode("utf-8")
+                        _ts = self.runner.time()
                         _data = float(_ndata)
                         self.data_coming.emit(_data)
                         self.data.append([_ts, _ndata])
                     except ValueError:
+                        pass
+                    except UnicodeDecodeError:
                         pass
                 time.sleep(0.01)
         except serial.serialutil.SerialException as e:
@@ -444,19 +459,21 @@ class MTimeSeries1:
 
         self.t_thread = None
         self.runner = None
-        # self.display = TSDisplay()
-        self.t_thread = TSThread(self._value, self.runner)
-        # self.t_thread.data_coming.connect(self.display.graphicsView.append)
+        self._display = TSDisplay()
+        self._display.show_event.connect(self._display.show_event_rec)
+        self._display.close_event.connect(self._display.close_event_rec)
 
     def start(self, path):
+        self.t_thread = TSThread(self._value, self.runner)
         self.t_thread.setPath(path)
+        self.t_thread.data_coming.connect(self._display.graphicsView.append)
 
-        # self.display.show()
+        self._display.show_event.emit(self._value["xlim"], self._value["ylim"])
         self.t_thread.start()
 
     def stop(self):
         self.t_thread.port_disconnect()
-        # self.display.close()
+        self._display.close_event.emit()
 
     def set_record(self, _record):
         self._record = _record
