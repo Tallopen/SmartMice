@@ -298,6 +298,7 @@ class TSEditor(QDialog):
             self.print(f"Connection failure!")
 
     def scan(self):
+        self._port_name_list = []
         _ports = list_ports.comports()
         for _port in _ports:
             self._port_name_list.append(_port.name)

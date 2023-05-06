@@ -19,7 +19,7 @@ class FSAToolbox(QWidget):
         self.setWindowIcon(gui_main.icon)
 
         self.setObjectName(u"FSAToolbox")
-        self.resize(200, 400)
+        self.resize(200, 200)
         self.move(260, 60)
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setSpacing(0)

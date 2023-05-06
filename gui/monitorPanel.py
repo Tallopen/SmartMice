@@ -186,6 +186,7 @@ class MonitorPanel(QWidget):
         _item_id = self.tableWidget.rowCount()-1
         for _i in range(4):
             self.tableWidget.setItem(_item_id, _i, QTableWidgetItem(str(content[_i])))
+        self.tableWidget.scrollToBottom()
 
     def tick(self, _time):
         self.lcdNumber.display(_time // 60)
