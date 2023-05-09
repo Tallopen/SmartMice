@@ -43,7 +43,7 @@ class MyTimeSeries(QThread):
                         self.data_coming.emit(_data)
                     except ValueError:
                         pass
-                time.sleep(0.01)
+                time.sleep(0.0005)
         except Exception as e:
             self.data_flow_aborted.emit()
 
@@ -92,7 +92,7 @@ class Canvas(QGraphicsView):
         self.data.append(_y)
 
         if len(self.data) > 1e6:
-            self.data = self.data[5e5:]
+            self.data = self.data[500000:]
 
         if self._id > self.xlim:
             self._id = 0

@@ -36,16 +36,17 @@ class Runner:
         _quoted_variables = list()
 
         for _node_name, _node in fsa['node'].items():
-            for _ph_name, _v in _node['var'].items():
-                if _v['name']:
-                    _quoted_variables.append(_v['name'])
-                    if variable_dict[_v['name']]['type'] == "MVarArray" or variable_dict[_v['name']]['type'] == "MNaiveDisplay":
-                        _quoted_variables.extend(list(variable_dict[_v['name']]['value']))
-                    elif variable_dict[_v['name']]['type'] == "MTracker":
-                        if variable_dict[_v['name']]['value']["cam"]:
-                            _quoted_variables.append(variable_dict[_v['name']]['value']["cam"])
-                else:
-                    return False, f"Unfilled placeholder '{_ph_name}' detected in node '{_node_name}'."
+            if _node_name in fsa['node-index']:
+                for _ph_name, _v in _node['var'].items():
+                    if _v['name']:
+                        _quoted_variables.append(_v['name'])
+                        if variable_dict[_v['name']]['type'] == "MVarArray" or variable_dict[_v['name']]['type'] == "MNaiveDisplay":
+                            _quoted_variables.extend(list(variable_dict[_v['name']]['value']))
+                        elif variable_dict[_v['name']]['type'] == "MTracker":
+                            if variable_dict[_v['name']]['value']["cam"]:
+                                _quoted_variables.append(variable_dict[_v['name']]['value']["cam"])
+                    else:
+                        return False, f"Unfilled placeholder '{_ph_name}' detected in node '{_node_name}'."
 
         _quoted_variables = list(set(_quoted_variables))
 

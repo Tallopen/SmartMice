@@ -608,7 +608,11 @@ class Project:
         self.interface.resource_manager_property_renew.emit("project", self._config)
         self.interface.update_variable_create_toolbox.emit(os.path.join("variables", "icon"), self._var_class)
         self.interface.update_fsa_toolbox.emit(os.path.join(self._project_dir, "node", "icon"), self._node_class)
-        self.interface.variable_renew.emit(self._m["var"])
+
+        _var_used = dict()
+        for _var_term in self._m["var-index"]:
+            _var_used[_var_term] = self._m["var"][_var_term]
+        self.interface.variable_renew.emit(_var_used)
 
         # every element is stored in the form of a dict.
         # if the element is never quoted, it will be cleared when using self.save()

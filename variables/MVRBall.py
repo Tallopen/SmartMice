@@ -27,6 +27,13 @@ import numpy as np
 import quaternion
 
 
+# note: you may want to check network configuration of your computer to ensure your local ip
+LOCAL_IP = "192.168.137.1"
+
+# make sure this port below is available
+BALL_UDP_PORT = 4514
+
+
 class VRBallVisualizer(QOpenGLWidget):
 
     def __init__(self, *args, **kwargs):
@@ -156,7 +163,7 @@ class VRBallEditor(QDialog):
         self.pitchScalingSpin = QDoubleSpinBox(self)
         self.pitchScalingSpin.setMaximum(1000)
         self.pitchScalingSpin.setSingleStep(0.01)
-        self.pitchScalingSpin.setValue(25)
+        self.pitchScalingSpin.setValue(value["pitch-scale"])
 
         self.horizontalLayout_3.addWidget(self.pitchScalingSpin)
 
@@ -170,7 +177,7 @@ class VRBallEditor(QDialog):
         self.rollScalingSpin = QDoubleSpinBox(self)
         self.rollScalingSpin.setMaximum(1000)
         self.rollScalingSpin.setSingleStep(0.01)
-        self.rollScalingSpin.setValue(25)
+        self.rollScalingSpin.setValue(value["roll-scale"])
 
         self.horizontalLayout_4.addWidget(self.rollScalingSpin)
 
@@ -185,7 +192,7 @@ class VRBallEditor(QDialog):
         self.yawScalingSpin.setEnabled(False)
         self.yawScalingSpin.setMaximum(1000)
         self.yawScalingSpin.setSingleStep(0.01)
-        self.yawScalingSpin.setValue(25)
+        self.yawScalingSpin.setValue(value["yaw-scale"])
 
         self.horizontalLayout_5.addWidget(self.yawScalingSpin)
 
@@ -436,20 +443,24 @@ class VRBallEditor(QDialog):
         self.acc_y = 0
 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_port_id = 4514
 
         self.counter = 0
 
+        self._port_name_list = []
+        self.scan()
+        if self._value["COM"] in self._port_name_list:
+            self.portCombo.setCurrentText(self._value["COM"])
+
     def scan(self):
         _ports = list_ports.comports()
-        _port_name_list = []
+        self._port_name_list = []
         for _port in _ports:
-            _port_name_list.append(_port.name)
+            self._port_name_list.append(_port.name)
 
         self.portCombo.clear()
 
         if len(_ports):
-            self.portCombo.addItems(_port_name_list)
+            self.portCombo.addItems(self._port_name_list)
             self.connectToPort.setEnabled(True)
             self.baudRateCombo.setEnabled(True)
         else:
@@ -481,30 +492,31 @@ class VRBallEditor(QDialog):
         _q1 = self.quaternion_history[2] / self.quaternion_history[0]
         _q2 = self.quaternion_history[3] / self.quaternion_history[1]
         _q_prime = (_q1 * _q2).sqrt()
-        _t_prime = (1 / (self.time_stamp[2] - self.time_stamp[0]) + 1 / (self.time_stamp[3] - self.time_stamp[1])) / 2
+        _t_prime = ((self.time_stamp[2] - self.time_stamp[0]) + (self.time_stamp[3] - self.time_stamp[1])) / 2
 
         lspeed = quaternion.rotate_vectors(_q_prime, np.eye(3))
         lspeed = (lspeed / np.diag(lspeed) - np.eye(3)) / _t_prime
         lspeed = (- lspeed + np.transpose(lspeed)) / 2
-        lspeed_x = lspeed[0, 2] * self.pitchScalingSpin.value() * 0.0005
-        lspeed_y = lspeed[1, 2] * self.rollScalingSpin.value() * 0.0005
+        lspeed_x = lspeed[0, 2] * self.pitchScalingSpin.value()
+        lspeed_y = lspeed[1, 2] * self.rollScalingSpin.value()
 
         self.rollSpeedLabel.setText("{:.2f}".format(lspeed_x))
         self.yawSpeedLabel.setText("{:.2f}".format(lspeed_y))
         # self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
 
-        if 50 >= abs(lspeed_x) >= 1e-5:
-            self.acc_x += lspeed_x
-        if 50 >= abs(lspeed_y) >= 1e-5:
-            self.acc_y += lspeed_y
+        if abs(lspeed_x) >= 2e-1:
+            self.acc_x += lspeed_x * (self.time_stamp[3] - self.time_stamp[2])
+        if abs(lspeed_y) >= 2e-1:
+            self.acc_y += lspeed_y * (self.time_stamp[3] - self.time_stamp[2])
 
-        self.acc_x = round(self.acc_x, 5)
+        self.acc_x = round(self.acc_x, 5)     # acc means accumulated, not acceleration
         self.acc_y = round(self.acc_y, 5)
 
         self.placeOffsetLabel.setText(f"({self.acc_x}, {self.acc_y})")
 
         if self.counter > 4:
-            server_address = ("192.168.137.1", self.udp_port_id)
+            server_address = (LOCAL_IP, BALL_UDP_PORT)
+
             self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
         else:
             self.counter += 1
@@ -521,7 +533,7 @@ class VRBallEditor(QDialog):
                         counter = 0
                         _preprocess = _new_line.split(',')
                         if len(_preprocess) == 4:
-                            _qu = [int(_preprocess[_i]) * 0.000030517578125 for _i in range(4)]
+                            _qu = [int(_preprocess[_i]) / 32768 for _i in range(4)]
                             self.process_qu(_qu)
                         else:
                             self.print(_new_line)
@@ -541,6 +553,7 @@ class VRBallEditor(QDialog):
             self.baudRateCombo.setEnabled(False)
             threading.Thread(target=self.begin_pose_check).start()
             self.scanPort.setEnabled(False)
+            self._value["COM"] = self.portCombo.currentText()
         except Exception as e:
             QMessageBox.critical(self, "Connect to port", f"Connection error: {e.args}")
 
@@ -550,12 +563,125 @@ class VRBallEditor(QDialog):
         if self.port is not None and self.port.isOpen():
             self.port.close()
 
+        server_address = (LOCAL_IP, BALL_UDP_PORT)
+        self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
+        time.sleep(0.02)
+        self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
         self.client_socket.close()
 
         if _v:
-            return copy.deepcopy(self._value), _v
+            return {
+                        "COM": self._value["COM"],
+                        "yaw-scale": self.yawScalingSpin.value(),
+                        "pitch-scale": self.pitchScalingSpin.value(),
+                        "roll-scale": self.rollScalingSpin.value(),
+                    }, _v
 
         return None, _v
+
+
+class RunTimeVRBall(QThread):
+
+    def __init__(self):
+        super(RunTimeVRBall, self).__init__()
+
+        self.ble_com = None
+        self.scales = [1, 1, 1]
+
+        # create udp socket as soon as this class is initialized
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_port = (LOCAL_IP, BALL_UDP_PORT)
+
+        self.time_stamp = [
+            time.time() - 3e5,
+            time.time() - 2e5,
+            time.time() - 1e5,
+            time.time()
+        ]
+
+        self._qu = [1, 0, 0, 0]
+        self._accumulated_position = [0, 0]
+
+        self.quaternion_history = [
+            quaternion.quaternion(1, 0, 0, 0),
+            quaternion.quaternion(1, 0, 0, 0),
+            quaternion.quaternion(1, 0, 0, 0),
+            quaternion.quaternion(1, 0, 0, 0)
+        ]
+
+    def connect_to_port(self, com_name, scales):
+        self.ble_com = serial.Serial(com_name, 115200)
+        self.scales = scales
+
+        # connect to port and wait until ball is connected
+        while self.ble_com.isOpen():
+            if self.ble_com.in_waiting:
+                _new_line = self.ble_com.readline().decode('utf8')[:-2]
+                _preprocess = _new_line.split(',')
+                if len(_preprocess) == 4:
+                    break
+
+    def run(self):
+        # use connect_to_port() before you use run()
+        try:
+            if self.ble_com and self.ble_com.isOpen():
+                while self.ble_com.isOpen():
+                    self._get_ball_pose()
+                    self._feed_back_ball_pose()
+                    time.sleep(0.04)
+        except serial.SerialException as e:
+            pass
+
+    def _get_ball_pose(self):
+        # skip data beyond computation power
+        while self.ble_com.in_waiting:
+            _new_line = self.ble_com.readline().decode('utf8')[:-2]
+            if _new_line is None:
+                return
+            _preprocess = _new_line.split(',')
+            if len(_preprocess) == 4:
+                self._qu = [int(_preprocess[_i]) / 32768 for _i in range(4)]
+
+        # compute pose
+        _q = quaternion.quaternion(self._qu[0], self._qu[1], self._qu[2], self._qu[3])
+        _t = time.time()
+
+        # use successive minus
+        self.quaternion_history.append(_q)
+        self.quaternion_history.pop(0)
+        self.time_stamp.append(_t)
+        self.time_stamp.pop(0)
+
+        _q1 = self.quaternion_history[2] / self.quaternion_history[0]
+        _q2 = self.quaternion_history[3] / self.quaternion_history[1]
+        _q_prime = (_q1 * _q2).sqrt()
+        _t_prime = (self.time_stamp[2] - self.time_stamp[0] + self.time_stamp[3] - self.time_stamp[1]) / 2
+
+        lspeed = quaternion.rotate_vectors(_q_prime, np.eye(3))
+        lspeed = (lspeed / np.diag(lspeed) - np.eye(3)) / _t_prime
+        lspeed = (- lspeed + np.transpose(lspeed)) / 2
+        delta_x = lspeed[0, 2] * self.scales[2] * (self.time_stamp[3] - self.time_stamp[2])
+        delta_y = lspeed[1, 2] * self.scales[1] * (self.time_stamp[3] - self.time_stamp[2])
+
+        if abs(delta_x) >= 1e-1:
+            self._accumulated_position[0] += delta_x
+        if abs(delta_y) >= 1e-1:
+            self._accumulated_position[1] += delta_y
+
+        self._accumulated_position[0] = round(self._accumulated_position[0], 5)
+        self._accumulated_position[1] = round(self._accumulated_position[1], 5)
+
+    def _feed_back_ball_pose(self):
+        self.client_socket.sendto(f"{self._accumulated_position[0]},{self._accumulated_position[1]}".encode("gbk"), self.udp_port)
+
+    def stop(self):
+        try:
+            self._feed_back_ball_pose()
+            time.sleep(0.02)
+            self._feed_back_ball_pose()
+            self.ble_com.close()
+        except:
+            pass
 
 
 class MVRBall:
@@ -566,7 +692,7 @@ class MVRBall:
         "interface": False
     }
     value_editor = VRBallEditor
-    filter_func = set
+    filter_func = dict
 
     gui_param = {
         "menu_name": "VR Ball Sensor Interface",
@@ -578,9 +704,9 @@ class MVRBall:
         "name": None,
         "value": {
             "COM": "",
-            "yaw-scale": 1,
-            "pitch-scale": 1,
-            "roll-scale": 1,
+            "yaw-scale": 0.05,
+            "pitch-scale": 0.05,
+            "roll-scale": 0.05,
         },
         "quote": set()
     }
@@ -596,12 +722,18 @@ class MVRBall:
         self._x = 0
         self._y = 0
 
-    def set_coordinate(self, _x, _y):
-        self._x = _x
-        self._y = _y
+        self.vr_ball = RunTimeVRBall()
 
-    def get_coordinate(self):
-        pass
+    def start(self):
+        self.vr_ball.connect_to_port(self._value["COM"], [
+           self._value["yaw-scale"],
+           self._value["pitch-scale"],
+           self._value["roll-scale"]
+        ])
+        self.vr_ball.start()
+
+    def stop(self):
+        self.vr_ball.stop()
 
     def set_record(self, _record):
         self._record = _record
