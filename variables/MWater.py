@@ -34,8 +34,16 @@ class WaterFeeder:
     def give_water(self):
         try:
             self._p.write(b'w')
-        except:
+            return
+        except Exception as e:
             self.port_disconnect()
+
+        try:
+            self._p = serial.Serial(self.com_name, baudrate=230400)
+            if self._p.isOpen():
+                self.connected = True
+        except:
+            pass
 
 
 class LickValueEditor(QDialog):

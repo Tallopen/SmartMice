@@ -51,6 +51,8 @@ class MTimer:
         self._start_time = time.time()
 
     def get_value(self):
+        if self._running:
+            return time.time() - self._start_time
         return self._value
 
     def stop(self):

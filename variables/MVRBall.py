@@ -491,8 +491,10 @@ class VRBallEditor(QDialog):
 
         _q1 = self.quaternion_history[2] / self.quaternion_history[0]
         _q2 = self.quaternion_history[3] / self.quaternion_history[1]
-        _q_prime = (_q1 * _q2).sqrt()
-        _t_prime = ((self.time_stamp[2] - self.time_stamp[0]) + (self.time_stamp[3] - self.time_stamp[1])) / 2
+        # _q_prime = (_q1 * _q2).sqrt()
+        # _t_prime = ((self.time_stamp[2] - self.time_stamp[0]) + (self.time_stamp[3] - self.time_stamp[1])) / 2
+        _t_prime = (self.time_stamp[3] - self.time_stamp[2])
+        _q_prime = self.quaternion_history[3] / self.quaternion_history[2]
 
         lspeed = quaternion.rotate_vectors(_q_prime, np.eye(3))
         lspeed = (lspeed / np.diag(lspeed) - np.eye(3)) / _t_prime
@@ -504,11 +506,13 @@ class VRBallEditor(QDialog):
         self.yawSpeedLabel.setText("{:.2f}".format(lspeed_y))
         # self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
 
-        if abs(lspeed_x) >= 2e-1:
-            self.acc_x += lspeed_x * (self.time_stamp[3] - self.time_stamp[2])
-        if abs(lspeed_y) >= 2e-1:
-            self.acc_y += lspeed_y * (self.time_stamp[3] - self.time_stamp[2])
+        if abs(lspeed_x) < 2e-1:
+            lspeed_x = 0
+        if abs(lspeed_y) < 2e-1:
+            lspeed_y = 0
 
+        self.acc_y += lspeed_y * (self.time_stamp[3] - self.time_stamp[2])
+        self.acc_x += lspeed_x * (self.time_stamp[3] - self.time_stamp[2])
         self.acc_x = round(self.acc_x, 5)     # acc means accumulated, not acceleration
         self.acc_y = round(self.acc_y, 5)
 
@@ -517,7 +521,7 @@ class VRBallEditor(QDialog):
         if self.counter > 4:
             server_address = (LOCAL_IP, BALL_UDP_PORT)
 
-            self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
+            self.client_socket.sendto(f"{round(lspeed_x, 5)},{round(lspeed_y, 5)}".encode("gbk"), server_address)
         else:
             self.counter += 1
 
@@ -564,9 +568,7 @@ class VRBallEditor(QDialog):
             self.port.close()
 
         server_address = (LOCAL_IP, BALL_UDP_PORT)
-        self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
-        time.sleep(0.02)
-        self.client_socket.sendto(f"{self.acc_x},{self.acc_y}".encode("gbk"), server_address)
+        self.client_socket.sendto(f"0,0".encode("gbk"), server_address)
         self.client_socket.close()
 
         if _v:
@@ -593,21 +595,18 @@ class RunTimeVRBall(QThread):
         self.udp_port = (LOCAL_IP, BALL_UDP_PORT)
 
         self.time_stamp = [
-            time.time() - 3e5,
-            time.time() - 2e5,
-            time.time() - 1e5,
+            time.time() - 1e-2,
             time.time()
         ]
 
         self._qu = [1, 0, 0, 0]
-        self._accumulated_position = [0, 0]
 
         self.quaternion_history = [
             quaternion.quaternion(1, 0, 0, 0),
-            quaternion.quaternion(1, 0, 0, 0),
-            quaternion.quaternion(1, 0, 0, 0),
             quaternion.quaternion(1, 0, 0, 0)
         ]
+        self.delta_x = 0
+        self.delta_y = 0
 
     def connect_to_port(self, com_name, scales):
         self.ble_com = serial.Serial(com_name, 115200)
@@ -628,16 +627,20 @@ class RunTimeVRBall(QThread):
                 while self.ble_com.isOpen():
                     self._get_ball_pose()
                     self._feed_back_ball_pose()
-                    time.sleep(0.04)
+                    time.sleep(0.02)
         except serial.SerialException as e:
             pass
 
     def _get_ball_pose(self):
         # skip data beyond computation power
         while self.ble_com.in_waiting:
-            _new_line = self.ble_com.readline().decode('utf8')[:-2]
+            try:
+                _new_line = self.ble_com.readline()
+            except TypeError:
+                return
             if _new_line is None:
                 return
+            _new_line = _new_line.decode('utf8')[:-2]
             _preprocess = _new_line.split(',')
             if len(_preprocess) == 4:
                 self._qu = [int(_preprocess[_i]) / 32768 for _i in range(4)]
@@ -652,32 +655,30 @@ class RunTimeVRBall(QThread):
         self.time_stamp.append(_t)
         self.time_stamp.pop(0)
 
-        _q1 = self.quaternion_history[2] / self.quaternion_history[0]
-        _q2 = self.quaternion_history[3] / self.quaternion_history[1]
-        _q_prime = (_q1 * _q2).sqrt()
-        _t_prime = (self.time_stamp[2] - self.time_stamp[0] + self.time_stamp[3] - self.time_stamp[1]) / 2
+        _q_prime = self.quaternion_history[1] / self.quaternion_history[0]
+        _t_prime = self.time_stamp[1] - self.time_stamp[0]
 
         lspeed = quaternion.rotate_vectors(_q_prime, np.eye(3))
         lspeed = (lspeed / np.diag(lspeed) - np.eye(3)) / _t_prime
         lspeed = (- lspeed + np.transpose(lspeed)) / 2
-        delta_x = lspeed[0, 2] * self.scales[2] * (self.time_stamp[3] - self.time_stamp[2])
-        delta_y = lspeed[1, 2] * self.scales[1] * (self.time_stamp[3] - self.time_stamp[2])
+        self.delta_x = lspeed[0, 2] * self.scales[1]
+        self.delta_y = lspeed[1, 2] * self.scales[2]
 
-        if abs(delta_x) >= 1e-1:
-            self._accumulated_position[0] += delta_x
-        if abs(delta_y) >= 1e-1:
-            self._accumulated_position[1] += delta_y
+        if abs(self.delta_x) < 1e-1:
+            self.delta_x = 0
+        if abs(self.delta_y) < 1e-1:
+            self.delta_y = 0
 
-        self._accumulated_position[0] = round(self._accumulated_position[0], 5)
-        self._accumulated_position[1] = round(self._accumulated_position[1], 5)
+        self.delta_x = round(self.delta_x, 5)
+        self.delta_y = round(self.delta_y, 5)
 
     def _feed_back_ball_pose(self):
-        self.client_socket.sendto(f"{self._accumulated_position[0]},{self._accumulated_position[1]}".encode("gbk"), self.udp_port)
+        self.client_socket.sendto(f"{self.delta_x},{self.delta_y}".encode("gbk"), self.udp_port)
 
     def stop(self):
         try:
-            self._feed_back_ball_pose()
-            time.sleep(0.02)
+            self.delta_x = 0
+            self.delta_y = 0
             self._feed_back_ball_pose()
             self.ble_com.close()
         except:

@@ -6,6 +6,7 @@
 
 import re
 from math import *
+from random import *
 
 
 class MExp:
@@ -48,7 +49,7 @@ class MExp:
             if _related_var_name in self.variable:
                 _expression = re.sub(r"{" + _related_var_name + "}", str(self.variable[_related_var_name].get_value()), _expression)
             else:
-                raise Exception("illegal expression")
+                raise Exception(f"illegal expression: {_related_var_name} cannot be parsed.")
 
         return eval(_expression)
 

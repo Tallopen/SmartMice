@@ -135,6 +135,8 @@ class DelayControlPanel(QDialog):
         self.continue_timer = True
         self.start_time = 0
 
+        self.t.time_update.connect(self._timer_thread_event)
+
     @pyqtSlot(int, int, int)
     def _timer_thread_event(self, _h, _m, _s):
         self.HourLCD.display(_h)
@@ -143,7 +145,6 @@ class DelayControlPanel(QDialog):
 
     def exec(self):
         self.start_time = time.time()
-        self.t.time_update.connect(self._timer_thread_event)
         self.t.set_start_time(self.start_time)
         self.t.start()
         _v = super(DelayControlPanel, self).exec()

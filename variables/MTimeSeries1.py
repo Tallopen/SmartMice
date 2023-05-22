@@ -390,16 +390,20 @@ class TSThread(QThread):
             while self._p.isOpen():
                 while self._p.inWaiting():
                     try:
-                        _ndata = self._p.readline().decode("utf-8")
-                        _ts = self.runner.time()
-                        _data = float(_ndata)
-                        self.data_coming.emit(_data)
-                        self.data.append([_ts, _ndata])
+                        _ndata = self._p.readline()
+                        if _ndata is not None:
+                            _ndata = _ndata.decode("utf-8")
+                            _ts = self.runner.time()
+                            _data = float(_ndata)
+                            self.data_coming.emit(_data)
+                            self.data.append([_ts, _ndata])
                     except ValueError:
                         pass
                     except UnicodeDecodeError:
                         pass
-                time.sleep(0.01)
+                    except TypeError:
+                        break
+                time.sleep(0.005)
         except serial.serialutil.SerialException as e:
             self.data_flow_aborted.emit()
 

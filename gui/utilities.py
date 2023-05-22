@@ -120,7 +120,7 @@ class RecordSelectDialog(QDialog):
     def exec(self):
 
         _v = super(RecordSelectDialog, self).exec()
-        if len(self.listWidget.selectedItems()) == 1:
+        if _v and len(self.listWidget.selectedItems()) == 1:
             _txt = self.listWidget.selectedItems()[0].text()
             return _txt, _v
         return None, _v
