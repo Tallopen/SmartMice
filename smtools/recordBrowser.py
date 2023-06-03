@@ -305,6 +305,8 @@ class RecordBrowser(QWidget):
             _res, _rcd = self.project.record_get_path(record_index)
             if _res:
                 record_list.append(Record(record_index, _rcd[0], _rcd[1]))
+            else:
+                record_list.append(Record(record_index, "", ""))
         return record_list
 
     def move_in(self):
@@ -371,12 +373,12 @@ class RecordBrowser(QWidget):
         _temp = []
         _sep = '/'
 
-        if self.record_list:
+        if "main-path" in self.record_list[0].props and self.record_list:
             _sep = '/' if '/' in self.record_list[0].props["main-path"] else '\\'
 
         for _rec in self.record_list:
             if _rec.check_state == Qt.CheckState.Checked:
-                property_root_list.append(_rec.props["main-path"].split(_sep))
+                property_root_list.append(_rec.props.get("main-path", "").split(_sep))
 
         if len(property_root_list):
             _temp = property_root_list[0]
@@ -452,6 +454,17 @@ class RecordBrowser(QWidget):
                 _temp_item.setText(0, _key)
                 self.treeWidget.addTopLevelItem(_temp_item)
                 add_items(_temp_item, _item, self.tw_items)
+
+        if len(_file_missing):
+            _temp_top_item = QTreeWidgetItem(self.treeWidget)
+            _temp_top_item.setText(0, "(FILE MISSING)")
+            _temp_top_item.setCheckState(0, Qt.CheckState.Unchecked)
+            self.treeWidget.addTopLevelItem(_temp_top_item)
+            for _missing in _file_missing:
+                _temp_item = QTreeWidgetItem(_temp_top_item)
+                _temp_item.setText(0, _missing.props["name"])
+                self.tw_items[_missing.props["name"]] = _missing
+                _temp_item.setCheckState(0, Qt.CheckState.Unchecked)
 
         for _index in range(0, self.treeWidget.topLevelItemCount()):
             set_check_state(self.treeWidget.topLevelItem(_index))

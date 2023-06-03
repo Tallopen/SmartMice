@@ -320,10 +320,12 @@ class Project:
         for node_name in _new_fsa["node-index"]:
             for placeholder_name, ph_content in _new_fsa["node"][node_name]["var"].items():
                 if ph_content["name"]:
-                    self._m["var"][ph_content["name"]]["quote"].remove(str([placeholder_name, node_name, _new_name]))
+                    self._m["var"][ph_content["name"]]["quote"].add(str([placeholder_name, node_name, _new_name]))
 
         self._m["fsa"][_new_name] = _new_fsa
-        return True, None
+        self.fsa_add(_new_name)
+
+        return True, _new_name
 
     def fsa_list(self):
         """

@@ -72,6 +72,7 @@ class GUIMain(QMainWindow):
             "fsa-create": (self._fsa_create, self._fsa_recover, self._fsa_delete),
             "fsa-prop-alter": (self._fsa_prop_alter, self._fsa_prop_alter_redo, self._fsa_prop_alter_undo),
             "fsa-delete": (self._fsa_delete, self._fsa_delete, self._fsa_recover),
+            "fsa-dup": (self._fsa_dup, self._fsa_recover, self._fsa_delete),
             "record-create": (self._record_create, self._record_recover, self._record_delete),
             "record-delete": (self._record_delete, self._record_delete, self._record_recover),
             "record-prop-alter": (self._record_prop_alter, self._record_prop_alter_redo, self._record_prop_alter_undo),
@@ -147,6 +148,7 @@ class GUIMain(QMainWindow):
         self.actionDelete_FSA.setObjectName(u"actionDelete_FSA")
         self.actionDuplicate_FSA = QAction(self)
         self.actionDuplicate_FSA.setObjectName(u"actionDuplicate_FSA")
+        self.actionDuplicate_FSA.triggered.connect(lambda: self.do("fsa-dup", self.resource_manager.dockWidget_2.windowTitle()))
         self.actionNew_Record = QAction(self)
         self.actionNew_Record.triggered.connect(lambda: self.do("record-create"))
         self.actionNew_Record.setObjectName(u"actionNew_Record")
@@ -599,10 +601,13 @@ class GUIMain(QMainWindow):
     def _fsa_create(self):
         return self.project.fsa_new()
 
-    def _fsa_delete(self, name):
+    def _fsa_dup(self, name):
+        return self.project.fsa_duplicate(name)
+
+    def _fsa_delete(self, name, *args):
         return self.project.fsa_remove(name)
 
-    def _fsa_recover(self, name):
+    def _fsa_recover(self, name, *args):
         return self.project.fsa_add(name)
 
     def _var_create(self, _type, _):
