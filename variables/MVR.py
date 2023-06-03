@@ -75,6 +75,7 @@ class MVR(QObject):
         self.vr.message_received.connect(self._message_received)
 
         self._licko = None
+        self.r1 = False
 
     def write_message(self, _bytes):
         self.client_socket.sendto(_bytes.encode(encoding="utf8"), self.vr_socket)
@@ -93,6 +94,7 @@ class MVR(QObject):
         _p = message.split(",")
         if _p[0] == "r1":
             self._licko.give_water()
+            self.r1 = True
 
     def new_reward(self, _x, _y):
         self.write_message(f"R,{_x},{_y}")

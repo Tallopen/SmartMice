@@ -135,10 +135,8 @@ class GUIMain(QMainWindow):
         self.actionFSA_Toolbar.setCheckable(True)
 
         # Tools menu
-        self.actionAnalyser = QAction(self)
         self.actionRecord_Browser = QAction(self)
         self.actionRecord_Browser.triggered.connect(self._show_record_browser)
-        self.actionData_Transfer = QAction(self)
 
         # FSA menu
         self.actionNew_FSA = QAction(self)
@@ -149,8 +147,6 @@ class GUIMain(QMainWindow):
         self.actionDelete_FSA.setObjectName(u"actionDelete_FSA")
         self.actionDuplicate_FSA = QAction(self)
         self.actionDuplicate_FSA.setObjectName(u"actionDuplicate_FSA")
-        self.actionData_Export = QAction(self)
-        self.actionData_Export.setObjectName(u"actionData_Export")
         self.actionNew_Record = QAction(self)
         self.actionNew_Record.triggered.connect(lambda: self.do("record-create"))
         self.actionNew_Record.setObjectName(u"actionNew_Record")
@@ -159,8 +155,6 @@ class GUIMain(QMainWindow):
         self.actionDelete_Record.setObjectName(u"actionDelete_Record")
         self.actionLay_Out = QAction(self)
         self.actionLay_Out.setObjectName(u"actionLay_Out")
-        self.actionRun = QAction(self)
-        self.actionRun.setObjectName(u"actionRun")
 
         self.centralWidget = QWidget(self)
         self.centralWidget.setObjectName(u"centralWidget")
@@ -205,9 +199,7 @@ class GUIMain(QMainWindow):
         self.menuEdit.addAction(self.actionFSA_Toolbar)
         self.menuEdit.addAction(self.actionVariable_Manager)
         self.menuEdit.addAction(self.actionMonitor_Array)
-        self.menuTools.addAction(self.actionAnalyser)
         self.menuTools.addAction(self.actionRecord_Browser)
-        self.menuTools.addAction(self.actionData_Transfer)
         self.menuFSA.addAction(self.actionNew_FSA)
         self.menuFSA.addAction(self.actionDuplicate_FSA)
         self.menuFSA.addAction(self.actionDelete_FSA)
@@ -216,10 +208,6 @@ class GUIMain(QMainWindow):
         self.menuFSA.addAction(self.actionDelete_Record)
         self.menuFSA.addSeparator()
         self.menuFSA.addAction(self.actionLay_Out)
-        self.menuFSA.addSeparator()
-        self.menuFSA.addAction(self.actionData_Export)
-        self.menuFSA.addSeparator()
-        self.menuFSA.addAction(self.actionRun)
 
         self.setWindowTitle(QCoreApplication.translate("self", u"SmartMice 2", None))
         self.setStatusTip("")
@@ -234,18 +222,14 @@ class GUIMain(QMainWindow):
         self.actionFSA_Viewer.setText(QCoreApplication.translate("self", u"FSA Viewer", None))
         self.actionVariable_Manager.setText(QCoreApplication.translate("self", u"Variable Manager", None))
         self.actionMonitor_Array.setText(QCoreApplication.translate("self", u"Run and Record Window", None))
-        self.actionAnalyser.setText(QCoreApplication.translate("self", u"Data Preprocess Toolkit", None))
         self.actionRecord_Browser.setText(u"Browse Records")
-        self.actionData_Transfer.setText(QCoreApplication.translate("self", u"Data Transfer", None))
         self.actionNew_FSA.setText(QCoreApplication.translate("self", u"New FSA", None))
         self.actionDelete_FSA.setText(QCoreApplication.translate("self", u"Delete FSA", None))
         self.actionDuplicate_FSA.setText(QCoreApplication.translate("self", u"Duplicate Selected FSA", None))
-        self.actionData_Export.setText(QCoreApplication.translate("self", u"Raw Data Export ...", None))
         self.actionNew_Record.setText(QCoreApplication.translate("self", u"New Record", None))
         self.actionDelete_Record.setText(QCoreApplication.translate("self", u"Remove Selected Record", None))
         self.actionLay_Out.setText(QCoreApplication.translate("self", u"Automatic Layout", None))
         self.actionFSA_Toolbar.setText(QCoreApplication.translate("self", u"FSA Toolbox", None))
-        self.actionRun.setText(QCoreApplication.translate("self", u"Run...", None))
         self.menuFile.setTitle(QCoreApplication.translate("self", u"File", None))
         self.menuRecent_Project.setTitle(QCoreApplication.translate("self", u"Recent Project", None))
         self.menuEdit.setTitle(QCoreApplication.translate("self", u"Edit", None))
@@ -254,9 +238,9 @@ class GUIMain(QMainWindow):
 
         self.menu_list = [
             self.actionNew_Project, self.actionOpen_Project, self.menuRecent_Project, self.actionClose_Project,
-            self.actionNew_FSA, self.actionDelete_FSA, self.actionNew_Record, self.actionData_Export,
+            self.actionNew_FSA, self.actionDelete_FSA, self.actionNew_Record,
             self.actionDuplicate_FSA, self.actionDelete_Record, self.actionDuplicate_FSA,
-            self.actionLay_Out, self.actionRun, self.actionSave_Project, self.actionResource_Manager,
+            self.actionLay_Out, self.actionSave_Project, self.actionResource_Manager,
             self.actionFSA_Viewer, self.actionVariable_Manager, self.actionMonitor_Array, self.actionFSA_Toolbar
         ]
 
@@ -340,12 +324,9 @@ class GUIMain(QMainWindow):
                 self.actionNew_FSA.setEnabled(True)
                 self.actionNew_Record.setEnabled(True)
 
-                self.actionData_Export.setEnabled(True)
-
             if app_state == APP_STATE_FSA_SELECTED:
                 self.actionDuplicate_FSA.setEnabled(True)
                 self.actionDelete_FSA.setEnabled(True)
-                self.actionRun.setEnabled(True)
                 self.actionLay_Out.setEnabled(True)
                 self.monitor_panel.runButton.setEnabled(True)
 
