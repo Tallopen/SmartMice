@@ -34,6 +34,10 @@ LOCAL_IP = "192.168.137.1"
 BALL_UDP_PORT = 4514
 
 
+def rotate_vector_2d(x, y, theta):
+    return f"{round(x*np.cos(theta) - y*np.sin(theta), 5)},{round(x*np.sin(theta) + y*np.cos(theta))}"
+
+
 class VRBallVisualizer(QOpenGLWidget):
 
     def __init__(self, *args, **kwargs):
@@ -88,44 +92,45 @@ class VRBallVisualizer(QOpenGLWidget):
         glEnable(GL_COLOR_MATERIAL)
 
     def paintGL(self) -> None:
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        if self.q.norm() > 0:
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        gluLookAt(8, 0, 0, 0, 0, 0, 0, 1, 0)
+            glMatrixMode(GL_MODELVIEW)
+            glLoadIdentity()
+            gluLookAt(8, 0, 0, 0, 0, 0, 0, 1, 0)
 
-        _main_axis_dots = quaternion.rotate_vectors(self.q, self.main_axis_dots)
-        _latitude_dots = quaternion.rotate_vectors(self.q, self.latitude_dots)
-        _x_axis_dots = quaternion.rotate_vectors(self.q, self.x_axis_dots)
-        _triangle_dots = quaternion.rotate_vectors(self.q, self.triangle_dots)
+            _main_axis_dots = quaternion.rotate_vectors(self.q, self.main_axis_dots)
+            _latitude_dots = quaternion.rotate_vectors(self.q, self.latitude_dots)
+            _x_axis_dots = quaternion.rotate_vectors(self.q, self.x_axis_dots)
+            _triangle_dots = quaternion.rotate_vectors(self.q, self.triangle_dots)
 
-        glColor3f(0.5, 1.0, 1.0)
-        glPointSize(3)
+            glColor3f(0.5, 1.0, 1.0)
+            glPointSize(3)
 
-        glBegin(GL_POINTS)
-        for dot in _main_axis_dots:
-            glVertex3f(-dot[1], -dot[2], -dot[0])
-        glEnd()
+            glBegin(GL_POINTS)
+            for dot in _main_axis_dots:
+                glVertex3f(-dot[1], -dot[2], -dot[0])
+            glEnd()
 
-        glPointSize(1)
-        glColor3f(1.0, 1.0, 1.0)
-        glBegin(GL_POINTS)
-        for dot in _latitude_dots:
-            glVertex3f(-dot[1], -dot[2], -dot[0])
-        glEnd()
+            glPointSize(1)
+            glColor3f(1.0, 1.0, 1.0)
+            glBegin(GL_POINTS)
+            for dot in _latitude_dots:
+                glVertex3f(-dot[1], -dot[2], -dot[0])
+            glEnd()
 
-        glColor3f(0.3, 0.3, 1.0)
-        glPointSize(4)
-        glBegin(GL_POINTS)
-        for dot in _x_axis_dots:
-            glVertex3f(-dot[1], -dot[2], -dot[0])
-        glEnd()
+            glColor3f(0.3, 0.3, 1.0)
+            glPointSize(4)
+            glBegin(GL_POINTS)
+            for dot in _x_axis_dots:
+                glVertex3f(-dot[1], -dot[2], -dot[0])
+            glEnd()
 
-        glColor3f(0.3, 1.0, 0.3)
-        glBegin(GL_TRIANGLES)
-        for dot in _triangle_dots:
-            glVertex3f(-dot[1], -dot[2], -dot[0])
-        glEnd()
+            glColor3f(0.3, 1.0, 0.3)
+            glBegin(GL_TRIANGLES)
+            for dot in _triangle_dots:
+                glVertex3f(-dot[1], -dot[2], -dot[0])
+            glEnd()
 
     def resizeGL(self, w: int, h: int) -> None:
         glViewport(0, 0, w, h)
@@ -162,6 +167,7 @@ class VRBallEditor(QDialog):
 
         self.pitchScalingSpin = QDoubleSpinBox(self)
         self.pitchScalingSpin.setMaximum(1000)
+        self.pitchScalingSpin.setMinimum(-1000)
         self.pitchScalingSpin.setSingleStep(0.01)
         self.pitchScalingSpin.setValue(value["pitch-scale"])
 
@@ -176,6 +182,7 @@ class VRBallEditor(QDialog):
 
         self.rollScalingSpin = QDoubleSpinBox(self)
         self.rollScalingSpin.setMaximum(1000)
+        self.rollScalingSpin.setMinimum(-1000)
         self.rollScalingSpin.setSingleStep(0.01)
         self.rollScalingSpin.setValue(value["roll-scale"])
 
@@ -191,12 +198,28 @@ class VRBallEditor(QDialog):
         self.yawScalingSpin = QDoubleSpinBox(self)
         self.yawScalingSpin.setEnabled(False)
         self.yawScalingSpin.setMaximum(1000)
+        self.yawScalingSpin.setMinimum(-1000)
         self.yawScalingSpin.setSingleStep(0.01)
         self.yawScalingSpin.setValue(value["yaw-scale"])
 
         self.horizontalLayout_5.addWidget(self.yawScalingSpin)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
+
+        self.rotateLayout = QHBoxLayout()
+        self.rotateLabel = QLabel(self)
+
+        self.rotateLayout.addWidget(self.rotateLabel)
+
+        self.rotateSpin = QDoubleSpinBox(self)
+        self.rotateSpin.setMaximum(360)
+        self.rotateSpin.setMinimum(0)
+        self.rotateSpin.setSingleStep(10)
+        self.rotateSpin.setValue(value.get("rotate", 0))
+
+        self.rotateLayout.addWidget(self.rotateSpin)
+
+        self.verticalLayout_2.addLayout(self.rotateLayout)
 
         self.poseResetButton = QPushButton(self)
         self.poseResetButton.setMinimumSize(QSize(200, 0))
@@ -385,6 +408,7 @@ class VRBallEditor(QDialog):
         self.label_2.setText(QCoreApplication.translate("Form", u"Pitch scaling:", None))
         self.label_3.setText(QCoreApplication.translate("Form", u"Roll scaling:", None))
         self.label_6.setText(QCoreApplication.translate("Form", u"Yaw scaling:", None))
+        self.rotateLabel.setText("Rotate:")
         self.poseResetButton.setText(QCoreApplication.translate("Form", u"Reset Ball Pose Estimation", None))
         self.label_4.setText(QCoreApplication.translate("Form", u"Degree of Freedom:", None))
 
@@ -506,9 +530,9 @@ class VRBallEditor(QDialog):
         self.yawSpeedLabel.setText("{:.2f}".format(lspeed_y))
         # self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
 
-        if abs(lspeed_x) < 2e-1:
+        if abs(lspeed_x) < 0.5:
             lspeed_x = 0
-        if abs(lspeed_y) < 2e-1:
+        if abs(lspeed_y) < 0.5:
             lspeed_y = 0
 
         self.acc_y += lspeed_y * (self.time_stamp[3] - self.time_stamp[2])
@@ -521,7 +545,7 @@ class VRBallEditor(QDialog):
         if self.counter > 4:
             server_address = (LOCAL_IP, BALL_UDP_PORT)
 
-            self.client_socket.sendto(f"{round(lspeed_x, 5)},{round(lspeed_y, 5)}".encode("gbk"), server_address)
+            self.client_socket.sendto(rotate_vector_2d(lspeed_x, lspeed_y, self.rotateSpin.value()).encode("gbk"), server_address)
         else:
             self.counter += 1
 
@@ -577,6 +601,7 @@ class VRBallEditor(QDialog):
                         "yaw-scale": self.yawScalingSpin.value(),
                         "pitch-scale": self.pitchScalingSpin.value(),
                         "roll-scale": self.rollScalingSpin.value(),
+                        "rotate": self.rotateSpin.value()
                     }, _v
 
         return None, _v
@@ -607,10 +632,12 @@ class RunTimeVRBall(QThread):
         ]
         self.delta_x = 0
         self.delta_y = 0
+        self.rotate = 0
 
-    def connect_to_port(self, com_name, scales):
+    def connect_to_port(self, com_name, scales, rotate):
         self.ble_com = serial.Serial(com_name, 115200)
         self.scales = scales
+        self.rotate = rotate * math.pi / 180
 
         # connect to port and wait until ball is connected
         while self.ble_com.isOpen():
@@ -627,7 +654,7 @@ class RunTimeVRBall(QThread):
                 while self.ble_com.isOpen():
                     self._get_ball_pose()
                     self._feed_back_ball_pose()
-                    time.sleep(0.02)
+                    time.sleep(0.04)
         except serial.SerialException as e:
             pass
 
@@ -637,6 +664,8 @@ class RunTimeVRBall(QThread):
             try:
                 _new_line = self.ble_com.readline()
             except TypeError:
+                return
+            except AttributeError:
                 return
             if _new_line is None:
                 return
@@ -664,22 +693,23 @@ class RunTimeVRBall(QThread):
         self.delta_x = lspeed[0, 2] * self.scales[1]
         self.delta_y = lspeed[1, 2] * self.scales[2]
 
-        if abs(self.delta_x) < 1e-1:
+        if abs(self.delta_x) < 0.5:
             self.delta_x = 0
-        if abs(self.delta_y) < 1e-1:
+        if abs(self.delta_y) < 0.5:
             self.delta_y = 0
 
         self.delta_x = round(self.delta_x, 5)
         self.delta_y = round(self.delta_y, 5)
 
     def _feed_back_ball_pose(self):
-        self.client_socket.sendto(f"{self.delta_x},{self.delta_y}".encode("gbk"), self.udp_port)
+        self.client_socket.sendto(rotate_vector_2d(self.delta_x, self.delta_y, self.rotate).encode("gbk"), self.udp_port)
 
     def stop(self):
         try:
             self.delta_x = 0
             self.delta_y = 0
             self._feed_back_ball_pose()
+            self.client_socket.close()
             self.ble_com.close()
         except:
             pass
@@ -708,6 +738,7 @@ class MVRBall:
             "yaw-scale": 0.05,
             "pitch-scale": 0.05,
             "roll-scale": 0.05,
+            "rotate": 0,
         },
         "quote": set()
     }
@@ -730,7 +761,7 @@ class MVRBall:
            self._value["yaw-scale"],
            self._value["pitch-scale"],
            self._value["roll-scale"]
-        ])
+        ], self._value.get("rotate", 0))
         self.vr_ball.start()
 
     def stop(self):

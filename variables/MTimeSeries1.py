@@ -403,6 +403,8 @@ class TSThread(QThread):
                         pass
                     except TypeError:
                         break
+                    except AttributeError:
+                        break
                 time.sleep(0.005)
         except serial.serialutil.SerialException as e:
             self.data_flow_aborted.emit()
