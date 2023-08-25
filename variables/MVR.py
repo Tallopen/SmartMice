@@ -7,7 +7,8 @@ from PyQt6.QtCore import *
 import socket
 
 # note: you may want to check network configuration of your computer to ensure your local ip
-LOCAL_IP = "192.168.137.1"
+# use cmd -> ipconfig/all
+LOCAL_IP = "127.0.0.1"
 
 
 class VR(QThread):

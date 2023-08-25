@@ -7,7 +7,7 @@ from PyQt6.QtCore import *
 import socket
 
 # note: you may want to check network configuration of your computer to ensure your local ip
-LOCAL_IP = "192.168.137.1"
+LOCAL_IP = "127.0.0.1"
 
 
 class UDPClient(QThread):
@@ -63,6 +63,8 @@ class UDPClient(QThread):
 
         with open(self._data_save_path, "w") as f:
             f.write(data_string)
+
+        self.client_socket.close()
 
 
 class MUdp:

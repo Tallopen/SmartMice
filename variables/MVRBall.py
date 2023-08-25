@@ -28,7 +28,7 @@ import quaternion
 
 
 # note: you may want to check network configuration of your computer to ensure your local ip
-LOCAL_IP = "192.168.137.1"
+LOCAL_IP = "127.0.0.1"
 
 # make sure this port below is available
 BALL_UDP_PORT = 4514
@@ -545,7 +545,7 @@ class VRBallEditor(QDialog):
         if self.counter > 4:
             server_address = (LOCAL_IP, BALL_UDP_PORT)
 
-            self.client_socket.sendto(rotate_vector_2d(lspeed_x, lspeed_y, self.rotateSpin.value()).encode("gbk"), server_address)
+            self.client_socket.sendto(rotate_vector_2d(lspeed_x, lspeed_y, self.rotateSpin.value()*math.pi / 180).encode("gbk"), server_address)
         else:
             self.counter += 1
 
@@ -702,8 +702,11 @@ class RunTimeVRBall(QThread):
         self.delta_y = round(self.delta_y, 5)
 
     def _feed_back_ball_pose(self):
-        self.client_socket.sendto(rotate_vector_2d(self.delta_x, self.delta_y, self.rotate).encode("gbk"), self.udp_port)
-
+        try:
+            self.client_socket.sendto(rotate_vector_2d(self.delta_x, self.delta_y, self.rotate).encode("gbk"), self.udp_port)
+        except:
+            pass
+    
     def stop(self):
         try:
             self.delta_x = 0

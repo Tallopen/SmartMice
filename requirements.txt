@@ -1,11 +1,11 @@
 numpy>=1.23.5
-pyqt6==6.1.0
+pyqt6>=6.1.0
+pyqt6-tools
 pillow>=9.3.0
 opencv-python>=4.6.0.66
 pyserial>=3.5
 openpyxl>=3.0.10
 scipy>=1.10.0
 matplotlib==3.7.1
-
-# opengl
-# quaternion
+pyopengl>=3.1.1a1
+numpy-quaternion
