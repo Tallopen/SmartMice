@@ -1,6 +1,6 @@
 numpy>=1.23.5
-pyqt6>=6.1.0
-pyqt6-tools
+pyqt6==6.1.0
+pyqt6-tools==6.1.0.3.2
 pillow>=9.3.0
 opencv-python>=4.6.0.66
 pyserial>=3.5
