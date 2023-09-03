@@ -322,6 +322,8 @@ class Project:
                 if ph_content["name"]:
                     self._m["var"][ph_content["name"]]["quote"].add(str([placeholder_name, node_name, _new_name]))
 
+        _new_fsa["props"]["name"] = _new_name
+        _new_fsa["props"]["creation-time"] = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
         self._m["fsa"][_new_name] = _new_fsa
         self.fsa_add(_new_name)
 
