@@ -951,6 +951,13 @@ class Project:
                 if _value is not None:
                     _selected_fsa["link"][_value]["from"] = value
 
+            for _ph_name in _selected_fsa["node"][value]["var"].keys():
+                _var_quote = str([_ph_name, name, _selected_fsa["props"]["name"]])
+                for _, _var in self._m["var"].items():
+                    if _var_quote in _var["quote"]:
+                        _var["quote"].remove(_var_quote)
+                        _var["quote"].add(str([_ph_name, value, _selected_fsa["props"]["name"]]))
+
             self.interface.node_rename.emit(name, value, fsa_name)
             return True, name
         elif key == "type":
@@ -1646,6 +1653,9 @@ class Project:
 
             for _var_quote in self.var_quote_lookup(value):
                 self._m["fsa"][_var_quote[2]]["node"][_var_quote[1]]["var"][_var_quote[0]]["name"] = value
+
+            self._m["var-quoted"].remove(name)
+            self._m["var-quoted"].add(value)
 
             self.interface.var_renamed.emit(name, value)
             self.interface.var_property_change.emit(value, "name", value)
