@@ -5,7 +5,7 @@
 
 
 from . import BaseNode
-from PyQt6.QtWidgets import QFileDialog
+from tkinter.filedialog import asksaveasfilename
 
 
 class NewFileNode(BaseNode):
@@ -42,5 +42,5 @@ class NewFileNode(BaseNode):
         super(NewFileNode, self).__init__(runtime_dict)
 
     def run(self, _record):
-        _v = self.runtime["var"]["output to"].set_value(QFileDialog.getSaveFileName(parent=None, caption=self.runtime["name"])[0])
+        _v = self.runtime["var"]["output to"].set_value(asksaveasfilename(title=self.runtime["name"]))
         return self.runtime["jump"]["Done"]

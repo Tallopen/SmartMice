@@ -7,8 +7,8 @@ import core.record as record
 
 class MyThread(QThread):
 
-    def __init__(self, target, args):
-        super(QThread, self).__init__()
+    def __init__(self, parent, target, args):
+        super(QThread, self).__init__(parent=parent)
         self._foo = target
         self.args = args
 
@@ -164,7 +164,8 @@ class Runner:
                 for _variable in _compiled_variables.values():
                     _variable.set_record(self._record)
                 else:
-                    self._t1 = MyThread(target=self._run_func, args=(self._record,))
+                    self._t1 = MyThread(self._interface.guiMain, target=self._run_func, args=(self._record,))
+                    self._record.set_runner_thread(self._t1)
                     self._t1.start()
                     return True, None
 

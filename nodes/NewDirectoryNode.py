@@ -5,7 +5,7 @@
 
 
 from . import BaseNode
-from PyQt6.QtWidgets import QFileDialog
+from tkinter.filedialog import askdirectory
 
 
 class NewDirectoryNode(BaseNode):
@@ -42,5 +42,5 @@ class NewDirectoryNode(BaseNode):
         super(NewDirectoryNode, self).__init__(runtime_dict)
 
     def run(self, _record):
-        _v = self.runtime["var"]["output to"].set_value(QFileDialog.getExistingDirectory(parent=None, caption=self.runtime["name"]))
+        _v = self.runtime["var"]["output to"].set_value(askdirectory(title=self.runtime["name"]))
         return self.runtime["jump"]["Done"]

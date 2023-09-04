@@ -20,6 +20,8 @@ class Record:
         self._start_time = 0
         self._data_accessory = []
 
+        self._runner_thread = None
+
     def log(self, _type, name, value):
         _t = time.time()
         _log = [round(_t - self._start_time, 4), _type, name, value]
@@ -53,3 +55,9 @@ class Record:
 
     def get_a_parent(self):
         return self._interface.guiMain
+
+    def set_runner_thread(self, runner_thread):
+        self._runner_thread = runner_thread
+
+    def get_runner_thread(self):
+        return self._runner_thread
