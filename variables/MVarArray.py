@@ -110,10 +110,16 @@ class VarArrayEditor(QDialog):
             self.VarOut.takeItem(self.VarOut.indexFromItem(item).row())
             self.VarIn.addItem(item)
 
+        self.VarIn.sortItems()
+        self.VarOut.sortItems()
+
     def move_out(self):
         for item in self.VarIn.selectedItems():
             self.VarIn.takeItem(self.VarIn.indexFromItem(item).row())
             self.VarOut.addItem(item)
+
+        self.VarIn.sortItems()
+        self.VarOut.sortItems()
 
     def exec(self):
         _v = super(VarArrayEditor, self).exec()
@@ -121,6 +127,7 @@ class VarArrayEditor(QDialog):
         _txt = []
         for _item_id in range(self.VarIn.count()):
             _txt.append(self.VarIn.item(_item_id).text())
+        _txt.sort()
 
         if _v:
             return _txt, _v

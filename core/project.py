@@ -1654,8 +1654,9 @@ class Project:
             for _var_quote in self.var_quote_lookup(value):
                 self._m["fsa"][_var_quote[2]]["node"][_var_quote[1]]["var"][_var_quote[0]]["name"] = value
 
-            self._m["var-quoted"].remove(name)
-            self._m["var-quoted"].add(value)
+            if name in self._m["var-quoted"]:
+                self._m["var-quoted"].remove(name)
+                self._m["var-quoted"].add(value)
 
             self.interface.var_renamed.emit(name, value)
             self.interface.var_property_change.emit(value, "name", value)

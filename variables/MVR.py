@@ -34,6 +34,7 @@ class VR(QThread):
 
     def stop(self):
         self.running = False
+        self.client_socket.close()
 
 
 class MVR(QObject):

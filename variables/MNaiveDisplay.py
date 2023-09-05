@@ -123,6 +123,7 @@ class NaiveDisplayEditor(QDialog):
         _txt = []
         for _item_id in range(self.VarIn.count()):
             _txt.append(self.VarIn.item(_item_id).text())
+        _txt.sort()
 
         if _v:
             return _txt, _v
