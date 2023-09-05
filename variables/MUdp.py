@@ -42,9 +42,9 @@ class UDPClient(QThread):
                     data = _bytes.decode(encoding="utf8").split()
                     data = ''.join(data).split(',')
                     self.data.append([self._runner.time()] + data)
-                    self._x.set_value(data[0])
+                    self._x.set_value(float(data[0]))
                     if len(data) > 1:
-                        self._y.set_value(data[1])
+                        self._y.set_value(float(data[1]))
                     self._last_byte = _bytes
         except socket.timeout:
             pass

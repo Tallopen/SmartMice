@@ -431,6 +431,15 @@ class TrackerEditor(QDialog):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_6)
 
+        self.reverseCheckBox = QCheckBox(self.groupBox_2)
+        self.reverseCheckBox.setText("Reverse")
+        if self._value["reverse"]:
+            self.reverseCheckBox.setCheckState(Qt.CheckState.Checked)
+        else:
+            self.reverseCheckBox.setCheckState(Qt.CheckState.Unchecked)
+
+        self.verticalLayout_3.addWidget(self.reverseCheckBox)
+
         self.gridLayout_3.addWidget(self.groupBox_2, 2, 1, 1, 1)
 
         self.horizontalLayout_3.addLayout(self.gridLayout_3)
@@ -463,7 +472,7 @@ class TrackerEditor(QDialog):
         self.label_4.setText(QCoreApplication.translate("Dialog", u"Width", None))
         self.label_7.setText(QCoreApplication.translate("Dialog", u"X", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Camera View", None))
-        self.groupBox_2.setTitle(QCoreApplication.translate("Dialog", u"GroupBox", None))
+        self.groupBox_2.setTitle(QCoreApplication.translate("Dialog", u"Geometry", None))
         self.label_15.setText(QCoreApplication.translate("Dialog", u"Current Point Pair ID", None))
         self.CurrentPointIDLabel.setText(QCoreApplication.translate("Dialog", u"None", None))
         self.label_10.setText(QCoreApplication.translate("Dialog", u"Camera Point Property", None))
@@ -506,6 +515,8 @@ class TrackerEditor(QDialog):
         self.GeoPtXLE.textEdited.connect(self.pair_point_renew)
         self.GeoPtYLE.textEdited.connect(self.pair_point_renew)
 
+        self.reverseCheckBox.clicked.connect(self.reverse_binary_checked)
+
         # initialize threshold setting
         self.horizontalSlider.setValue(self._value["thresh"])
         self.horizontalSlider.valueChanged.connect(self.set_bin_thresh)
@@ -524,6 +535,9 @@ class TrackerEditor(QDialog):
 
     def set_bin_thresh(self, *args):
         self._value["thresh"] = self.horizontalSlider.value()
+
+    def reverse_binary_checked(self, *args):
+        self._value["reverse"] = self.reverseCheckBox.checkState() == Qt.CheckState.Checked
 
     def camera_data_renew(self, *args):
         if int(self.CamWLE.text()) < 10:
@@ -768,7 +782,8 @@ class TrackerEditor(QDialog):
             # binarize by thresholding
             blank3 = cv2.cvtColor(blank2, cv2.COLOR_RGB2GRAY)
             _, blank3 = cv2.threshold(blank3, self._value["thresh"], 255, cv2.THRESH_BINARY)
-            blank3 = cv2.bitwise_not(blank3)
+            if not self._value["reverse"]:
+                blank3 = cv2.bitwise_not(blank3)
             if len(dst_points):
                 mask = np.zeros_like(blank3)
                 cv2.fillPoly(mask, [np.int32(dst_points)-1], (1.0, 1.0, 1.0), 16, 0)
@@ -821,7 +836,7 @@ class TrackerEditor(QDialog):
 
 class TrackingThread(QThread):
 
-    def __init__(self, variable, m_cam, coordinate_var, _record, cam_coor, pt_series, threshold):
+    def __init__(self, variable, m_cam, coordinate_var, _record, cam_coor, pt_series, threshold, reverse=False):
         super(TrackingThread, self).__init__()
 
         self.variable = []
@@ -838,6 +853,7 @@ class TrackingThread(QThread):
         self.cam_coor = cam_coor
         self.pt_series = pt_series
         self.threshold = threshold
+        self.reverse = reverse
 
         _src_x = [int(i[0]) for i in self.pt_series]
         _src_y = [int(i[1]) for i in self.pt_series]
@@ -887,7 +903,8 @@ class TrackingThread(QThread):
 
             _, temp_img = cv2.threshold(temp_img, self.threshold, 255, cv2.THRESH_BINARY)
 
-            temp_img = cv2.bitwise_not(temp_img)
+            if not self.reverse:
+                temp_img = cv2.bitwise_not(temp_img)
             temp_img *= self.mask
 
             temp_img = cv2.morphologyEx(temp_img, cv2.MORPH_CLOSE, np.ones([4, 4], np.uint8))
@@ -934,7 +951,8 @@ class MTracker:
             "geo-ser": {
                 "pt-closed": []   # must in pairs: (camXY, geoXY)
             },   # closed, point series-formed lines
-            "thresh": 127
+            "thresh": 127,
+            "reverse": False
         },
 
         "quote": set()
@@ -955,7 +973,8 @@ class MTracker:
     def start(self, coordinate_var, _record):
         self.t_thread = TrackingThread(self.variable, self.variable[self._value["cam"]],
                                        coordinate_var, _record, self._value["cam-bbox"],
-                                       self._value["geo-ser"]["pt-closed"], self._value["thresh"])
+                                       self._value["geo-ser"]["pt-closed"], self._value["thresh"],
+                                       self._value["reverse"])
         self.t_thread.start()
 
     def stop(self):

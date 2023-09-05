@@ -510,6 +510,10 @@ class GUIMain(QMainWindow):
         self.project.runner.pause()
         self.set_app_state(APP_STATE_FSA_SELECTED, RUN_STATE_PAUSING)
 
+    def continue_run(self):
+        self.project.runner.continue_run()
+        self.set_app_state(APP_STATE_FSA_SELECTED, RUN_STATE_RUNNING)
+
     def run_terminated(self):
         self.set_app_state(APP_STATE_FSA_SELECTED, RUN_STATE_BASIC)
 

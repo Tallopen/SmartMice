@@ -20,4 +20,4 @@ conda activate SmartMice2
 python main.py
 ```
 After a while, there will be a splash, and then the main menu pops out. \
-Further user reference is coming in wiki.
+For further user reference, see [wiki](github.com/TallOpen/SmartMice/wiki).
