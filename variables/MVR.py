@@ -29,7 +29,7 @@ class VR(QThread):
                 _bytes = self.client_socket.recv(1024)
                 message = _bytes.decode(encoding="utf8")
                 self.message_received.emit(message)
-            except socket.timeout:
+            except:
                 pass
 
     def stop(self):

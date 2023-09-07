@@ -46,7 +46,7 @@ class UDPClient(QThread):
                     if len(data) > 1:
                         self._y.set_value(float(data[1]))
                     self._last_byte = _bytes
-        except socket.timeout:
+        except:
             pass
 
     def stop(self):

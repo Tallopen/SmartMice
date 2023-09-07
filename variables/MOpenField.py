@@ -2,8 +2,7 @@
 # created at: 2022/9/17 11:43
 # author    : Gao Kai
 # Email     : gaosimin1@163.com
-
-
+import random
 import threading
 import time
 from PyQt6.QtCore import *
@@ -11,6 +10,15 @@ from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
 import numpy as np
 import cv2
+
+
+def find_min_elements(matrix, n):
+    flattened_indices = np.argsort(matrix.flatten())[:n]
+
+    row_indices = np.floor(flattened_indices / matrix.shape[1]).astype(int)
+    col_indices = flattened_indices % matrix.shape[1]
+
+    return [(row, col) for row, col in zip(row_indices, col_indices)]
 
 
 class EmptyDelegate(QItemDelegate):
@@ -298,6 +306,7 @@ class OFViewer(QWidget):
         self.mapYn = int(np.ceil((Ylim[1]-Ylim[0]) / binSize))
 
         self.map = np.zeros([self.mapYn, self.mapXn])
+        print("wtf")
         self.of_img = np.zeros([self.graphicsView.height(), self.graphicsView.width(), 3], dtype=np.uint8)
         self.traj_img = np.zeros([self.graphicsView.height(), self.graphicsView.width(), 3], dtype=np.uint8)
         self.total_img = self.of_img + self.traj_img
@@ -347,9 +356,9 @@ class OFViewer(QWidget):
                 for xi in range(self.mapXn):
                     for yi in range(self.mapYn):
                         self.of_img = cv2.fillPoly(self.of_img, [np.array([[round(xi*binWidth), round(h-yi*binWidth)],
-                                                                 [round((xi+1)*binWidth), round(h-yi*binWidth)],
-                                                                 [round((xi+1)*binWidth), round(h-(yi+1)*binWidth)],
-                                                                 [round(xi*binWidth), round(h-(yi+1)*binWidth)]], dtype=np.int32)], (round(illum[yi, xi]), 0, 0))
+                                                                [round((xi+1)*binWidth), round(h-yi*binWidth)],
+                                                                [round((xi+1)*binWidth), round(h-(yi+1)*binWidth)],
+                                                                [round(xi*binWidth), round(h-(yi+1)*binWidth)]], dtype=np.int32)], (round(illum[yi, xi]), 0, 0))
 
                 # use all channels to show recent 10 positions
                 self.traj_img = np.zeros([self.graphicsView.height(), self.graphicsView.width()], dtype=np.uint8)
@@ -369,7 +378,14 @@ class OFViewer(QWidget):
         self.close()
 
     def get_pos_by_less_visit(self):
-        return 0, 0
+        if self.map.size <= 0:
+            target_bin = [np.random.randint(0, self.mapYn), np.random.randint(0, self.mapXn)]
+        else:
+            target_bin_num = int(self.map.size*0.4)
+            target_bins = find_min_elements(self.map, target_bin_num)
+            target_bin = target_bins[np.random.randint(0, target_bin_num)]
+
+        return ((target_bin[1] + random.random()) * self.binSize + self.xlim[0]) / 10, ((target_bin[0] + random.random()) * self.binSize + self.ylim[0]) / 10
 
 
 class MOpenField:
@@ -429,6 +445,7 @@ class MOpenField:
         self._viewer.show_event.emit(self._value["XLim"], self._value["YLim"], self._value["binSize"])
 
         threading.Thread(target=self._update).start()
+        time.sleep(1)
 
     def get_pos_by_less_visit(self):
         return self._viewer.get_pos_by_less_visit()
