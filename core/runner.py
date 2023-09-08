@@ -4,6 +4,8 @@ from PyQt6.QtCore import QThread
 
 import core.record as record
 
+from tkinter import Tk
+
 
 class MyThread(QThread):
 

@@ -449,6 +449,14 @@ class Project:
         self._m["fsa"][new_name] = self._m["fsa"][old_name]
         self._m["fsa"][new_name]["props"]["name"] = new_name
         self._m["fsa"].pop(old_name)
+
+        for node_name in self._m["fsa"][new_name]["node-index"]:
+            node_content = self._m["fsa"][new_name]["node"][node_name]
+            for ph_name, ph_content in node_content["var"].items():
+                if ph_content["name"] is not None:
+                    self._m["var"][ph_content["name"]]["quote"].remove(str([ph_name, node_name, old_name]))
+                    self._m["var"][ph_content["name"]]["quote"].add(str([ph_name, node_name, new_name]))
+
         self.interface.fsa_name_change.emit(old_name, new_name)
         self.interface.fsa_property_change.emit(new_name, "name", new_name)
         return True, old_name

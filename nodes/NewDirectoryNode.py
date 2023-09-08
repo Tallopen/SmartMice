@@ -2,7 +2,7 @@
 # created at: 2021/11/1 18:17
 # author    : Gao Kai
 # Email     : gaosimin1@163.com
-
+import tkinter
 
 from . import BaseNode
 from tkinter.filedialog import askdirectory
