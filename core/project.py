@@ -459,6 +459,7 @@ class Project:
 
         self.interface.fsa_name_change.emit(old_name, new_name)
         self.interface.fsa_property_change.emit(new_name, "name", new_name)
+        self._selected_fsa_name = new_name
         return True, old_name
 
     def fsa_select(self, name):
