@@ -306,7 +306,6 @@ class OFViewer(QWidget):
         self.mapYn = int(np.ceil((Ylim[1]-Ylim[0]) / binSize))
 
         self.map = np.zeros([self.mapYn, self.mapXn])
-        print("wtf")
         self.of_img = np.zeros([self.graphicsView.height(), self.graphicsView.width(), 3], dtype=np.uint8)
         self.traj_img = np.zeros([self.graphicsView.height(), self.graphicsView.width(), 3], dtype=np.uint8)
         self.total_img = self.of_img + self.traj_img
