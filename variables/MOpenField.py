@@ -341,8 +341,8 @@ class OFViewer(QWidget):
                 xind = np.floor(xind)
                 yind = np.floor(yind)
                 good_index = np.logical_and(np.logical_and(np.logical_and(0 <= xind, xind < self.mapXn), 0 <= yind), yind < self.mapYn)
-                xind = xind[good_index].astype(np.int)
-                yind = yind[good_index].astype(np.int)
+                xind = xind[good_index].astype(int)
+                yind = yind[good_index].astype(int)
                 time_unit = 1 / len(xind) * deltaTime
                 for i in range(len(xind)):
                     self.map[yind[i], xind[i]] += time_unit
@@ -357,7 +357,7 @@ class OFViewer(QWidget):
                         self.of_img = cv2.fillPoly(self.of_img, [np.array([[round(xi*binWidth), round(h-yi*binWidth)],
                                                                 [round((xi+1)*binWidth), round(h-yi*binWidth)],
                                                                 [round((xi+1)*binWidth), round(h-(yi+1)*binWidth)],
-                                                                [round(xi*binWidth), round(h-(yi+1)*binWidth)]], dtype=np.int32)], (round(illum[yi, xi]), 0, 0))
+                                                                [round(xi*binWidth), round(h-(yi+1)*binWidth)]], dtype=int)], (round(illum[yi, xi]), 0, 0))
 
                 # use all channels to show recent 10 positions
                 self.traj_img = np.zeros([self.graphicsView.height(), self.graphicsView.width()], dtype=np.uint8)

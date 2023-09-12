@@ -866,7 +866,7 @@ class TrackingThread(QThread):
 
         self.mask = np.zeros((self.dst_bbox[3] - self.dst_bbox[1], self.dst_bbox[2] - self.dst_bbox[0]), dtype=np.uint8)
 
-        self.src_points = np.array([i[:2] for i in self.pt_series], dtype=np.float32) - np.array([_min_src_x, _min_src_y], dtype=np.float32)
+        self.src_points = np.array([[i[0], -i[1]] for i in self.pt_series], dtype=np.float32) - np.array([_min_src_x, _min_src_y], dtype=np.float32)
         self.dst_points = np.array([i[2:] for i in self.pt_series], dtype=np.float32) - np.array([self.dst_bbox[0], self.dst_bbox[1]], dtype=np.float32)
 
         rect = (-500, -500, 1500, 1500)

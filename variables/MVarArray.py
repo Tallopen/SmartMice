@@ -160,6 +160,7 @@ class MVarArray:
     def __init__(self, value, _name):
 
         self._value = list(value)
+        self._value.sort()
         self._name = _name
         self._record = None
         self.variable = dict()
