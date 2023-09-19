@@ -35,7 +35,7 @@ BALL_UDP_PORT = 4514
 
 
 def rotate_vector_2d(x, y, theta):
-    return f"{round(x*np.cos(theta) - y*np.sin(theta), 5)},{round(x*np.sin(theta) + y*np.cos(theta))}"
+    return f"{round(x*np.cos(theta) - y*np.sin(theta), 3)},{round(x*np.sin(theta) + y*np.cos(theta), 3)}"
 
 
 class VRBallVisualizer(QOpenGLWidget):
@@ -513,8 +513,8 @@ class VRBallEditor(QDialog):
         self.rotAxisLabel.setText("({:.3f}, {:.3f}, {:.3f})".format(_rot_axis[0], _rot_axis[1], _rot_axis[2]))
         self.rotAngleLabel.setText("{:.1f}".format(_rot_angle))
 
-        _q1 = self.quaternion_history[2] / self.quaternion_history[0]
-        _q2 = self.quaternion_history[3] / self.quaternion_history[1]
+        # _q1 = self.quaternion_history[2] / self.quaternion_history[0]
+        # _q2 = self.quaternion_history[3] / self.quaternion_history[1]
         # _q_prime = (_q1 * _q2).sqrt()
         # _t_prime = ((self.time_stamp[2] - self.time_stamp[0]) + (self.time_stamp[3] - self.time_stamp[1])) / 2
         _t_prime = (self.time_stamp[3] - self.time_stamp[2])
@@ -542,10 +542,10 @@ class VRBallEditor(QDialog):
 
         self.placeOffsetLabel.setText(f"({self.acc_x}, {self.acc_y})")
 
-        if self.counter > 4:
+        if self.counter > 3:
             server_address = (LOCAL_IP, BALL_UDP_PORT)
-
-            self.client_socket.sendto(rotate_vector_2d(lspeed_x, lspeed_y, self.rotateSpin.value()*math.pi / 180).encode("gbk"), server_address)
+            _s = rotate_vector_2d(lspeed_x, lspeed_y, self.rotateSpin.value()*math.pi / 180)
+            self.client_socket.sendto(_s.encode("gbk"), server_address)
         else:
             self.counter += 1
 

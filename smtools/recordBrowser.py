@@ -525,7 +525,7 @@ class RecordBrowser(QWidget):
                             _data = pickle.load(f)
                         _new_data = []
                         for _row in _data["record"]:
-                            _new_data.append(np.array(_row, np.object))
+                            _new_data.append(np.array(_row, object))
                         _new_data = np.array(_new_data)
                         _content["data"] = _new_data
 

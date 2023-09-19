@@ -343,33 +343,34 @@ class OFViewer(QWidget):
                 good_index = np.logical_and(np.logical_and(np.logical_and(0 <= xind, xind < self.mapXn), 0 <= yind), yind < self.mapYn)
                 xind = xind[good_index].astype(int)
                 yind = yind[good_index].astype(int)
-                time_unit = 1 / len(xind) * deltaTime
-                for i in range(len(xind)):
-                    self.map[yind[i], xind[i]] += time_unit
+                if len(xind):
+                    time_unit = 1 / len(xind) * deltaTime
+                    for i in range(len(xind)):
+                        self.map[yind[i], xind[i]] += time_unit
 
-                # then use only red channel to show each bin's time
-                illum = np.floor(self.map / (currentTime - self.startTime) * 100 * self.mapXn*self.mapYn)
-                binWidth = np.floor(min(self.graphicsView.width() / self.mapXn, self.graphicsView.height() / self.mapYn))
-                h = self.graphicsView.height()
+                    # then use only red channel to show each bin's time
+                    illum = np.floor(self.map / (currentTime - self.startTime) * 100 * self.mapXn*self.mapYn)
+                    binWidth = np.floor(min(self.graphicsView.width() / self.mapXn, self.graphicsView.height() / self.mapYn))
+                    h = self.graphicsView.height()
 
-                for xi in range(self.mapXn):
-                    for yi in range(self.mapYn):
-                        self.of_img = cv2.fillPoly(self.of_img, [np.array([[round(xi*binWidth), round(h-yi*binWidth)],
-                                                                [round((xi+1)*binWidth), round(h-yi*binWidth)],
-                                                                [round((xi+1)*binWidth), round(h-(yi+1)*binWidth)],
-                                                                [round(xi*binWidth), round(h-(yi+1)*binWidth)]], dtype=int)], (round(illum[yi, xi]), 0, 0))
+                    for xi in range(self.mapXn):
+                        for yi in range(self.mapYn):
+                            self.of_img = cv2.fillPoly(self.of_img, [np.array([[round(xi*binWidth), round(h-yi*binWidth)],
+                                                                    [round((xi+1)*binWidth), round(h-yi*binWidth)],
+                                                                    [round((xi+1)*binWidth), round(h-(yi+1)*binWidth)],
+                                                                    [round(xi*binWidth), round(h-(yi+1)*binWidth)]], dtype=int)], (round(illum[yi, xi]), 0, 0))
 
-                # use all channels to show recent 10 positions
-                self.traj_img = np.zeros([self.graphicsView.height(), self.graphicsView.width()], dtype=np.uint8)
-                self.traj_img = cv2.cvtColor(self.traj_img, cv2.COLOR_GRAY2BGR)
-                for i in range(20):
-                    cv2.circle(self.traj_img, (round((self.last_positions[-i][0] - self.xlim[0]) / self.binSize * binWidth),
-                                               round(h-(self.last_positions[-i][1]- self.ylim[0])/self.binSize*binWidth)), round(binWidth/5), (0, 255-i*10, 255-i*10), -1)
+                    # use all channels to show recent 10 positions
+                    self.traj_img = np.zeros([self.graphicsView.height(), self.graphicsView.width()], dtype=np.uint8)
+                    self.traj_img = cv2.cvtColor(self.traj_img, cv2.COLOR_GRAY2BGR)
+                    for i in range(20):
+                        cv2.circle(self.traj_img, (round((self.last_positions[-i][0] - self.xlim[0]) / self.binSize * binWidth),
+                                                   round(h-(self.last_positions[-i][1]- self.ylim[0])/self.binSize*binWidth)), round(binWidth/5), (0, 255-i*10, 255-i*10), -1)
 
-                # add all these together and display it
-                self.total_img = self.of_img + self.traj_img
-                tim = QPixmap(QImage(self.total_img, self.total_img.shape[1], self.total_img.shape[0], self.total_img.shape[1]*3, QImage.Format.Format_RGB888)).scaled(self.graphicsView.width()-2, self.graphicsView.height()-2)
-                self.graphicsView.draw_pixmap(tim)
+                    # add all these together and display it
+                    self.total_img = self.of_img + self.traj_img
+                    tim = QPixmap(QImage(self.total_img, self.total_img.shape[1], self.total_img.shape[0], self.total_img.shape[1]*3, QImage.Format.Format_RGB888)).scaled(self.graphicsView.width()-2, self.graphicsView.height()-2)
+                    self.graphicsView.draw_pixmap(tim)
 
         self.lastTime = currentTime
 
