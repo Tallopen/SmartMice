@@ -274,6 +274,11 @@ class SerialEditor(QDialog):
     def exec(self):
         super(SerialEditor, self).exec()
 
+        try:
+            self.port_disconnect()
+        except:
+            pass
+
         return self._value, True
 
 
