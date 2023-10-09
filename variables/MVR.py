@@ -109,3 +109,16 @@ class MVR(QObject):
 
     def cancel_last_reward(self):
         self.write_message(f"NR")
+
+    def set_all_wall_black(self):
+        self.write_message(f"CR")
+
+
+"""
+LOCAL_IP = "127.0.0.1"
+import socket
+socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+vr_socket = (LOCAL_IP, 4517)
+skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+skt.sendto("CR".encode(encoding="utf8"), vr_socket)
+"""

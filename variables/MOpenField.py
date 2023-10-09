@@ -12,11 +12,19 @@ import numpy as np
 import cv2
 
 
-def find_min_elements(matrix, n):
-    flattened_indices = np.argsort(matrix.flatten())[:n]
+def find_min_elements(matrix, n, centerX, centerY, square_radius):
+    flattened_indices = np.argsort(matrix.flatten())
 
     row_indices = np.floor(flattened_indices / matrix.shape[1]).astype(int)
     col_indices = flattened_indices % matrix.shape[1]
+
+    indices_faraway = ((row_indices - centerY) ** 2 + (col_indices - centerX) ** 2) > square_radius
+    row_indices = row_indices[indices_faraway]
+    col_indices = col_indices[indices_faraway]
+
+    if n < row_indices.size:
+        row_indices = row_indices[:n]
+        col_indices = col_indices[:n]
 
     return [(row, col) for row, col in zip(row_indices, col_indices)]
 
@@ -298,6 +306,8 @@ class OFViewer(QWidget):
         self.mapXn = 0
         self.mapYn = 0
 
+        self.target_bin = [0, 0]
+
     def show_event_rec(self, Xlim, Ylim, binSize):
         self.xlim = Xlim
         self.ylim = Ylim
@@ -379,13 +389,16 @@ class OFViewer(QWidget):
 
     def get_pos_by_less_visit(self):
         if self.map.size <= 0:
-            target_bin = [np.random.randint(0, self.mapYn), np.random.randint(0, self.mapXn)]
+            self.target_bin = [np.random.randint(0, self.mapYn), np.random.randint(0, self.mapXn)]
         else:
-            target_bin_num = int(self.map.size*0.4)
-            target_bins = find_min_elements(self.map, target_bin_num)
-            target_bin = target_bins[np.random.randint(0, target_bin_num)]
+            _xradius = self.mapXn / 3
+            _yradius = self.mapYn / 3
 
-        return ((target_bin[1] + random.random()) * self.binSize + self.xlim[0]) / 10, ((target_bin[0] + random.random()) * self.binSize + self.ylim[0]) / 10
+            target_bin_num = int(self.map.size*0.4)
+            target_bins = find_min_elements(self.map, target_bin_num, self.target_bin[0], self.target_bin[1], _xradius**2 + _yradius**2)
+            self.target_bin = target_bins[np.random.randint(0, len(target_bins))]
+
+        return ((self.target_bin[1] + random.random()) * self.binSize + self.xlim[0]) / 10, ((self.target_bin[0] + random.random()) * self.binSize + self.ylim[0]) / 10
 
 
 class MOpenField:
