@@ -107,6 +107,9 @@ class MVR(QObject):
     def new_square_field_size(self, _size):
         self.write_message(f"SZ,{_size}")
 
+    def set_linear_track_ID(self, _id):
+        self.write_message(f"T,{_id}")
+
     def cancel_last_reward(self):
         self.write_message(f"NR")
 
@@ -120,5 +123,5 @@ import socket
 socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 vr_socket = (LOCAL_IP, 4517)
 skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-skt.sendto("CR".encode(encoding="utf8"), vr_socket)
+skt.sendto("T,0".encode(encoding="utf8"), vr_socket)
 """
