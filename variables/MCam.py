@@ -290,7 +290,7 @@ class CamEditor(QDialog):
         QMessageBox.critical(self, "Camera Error", f"The camera (ID = {self.value['ID']}) cannot be connected.")
 
     def camera_init(self):
-        self.vd.set(cv2.CAP_PROP_FPS, 30)
+        self.vd.set(cv2.CAP_PROP_FPS, 20)
         self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
         self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         for key, value in self.scroll_item.items():
@@ -468,7 +468,7 @@ class MCam:
             self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
-            self._vd.set(cv2.CAP_PROP_FPS, 30)
+            self._vd.set(cv2.CAP_PROP_FPS, 20)
             self.current_img = self._vd.read()[1]
 
             threading.Thread(target=self._cam_tick).start()
