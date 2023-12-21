@@ -18,6 +18,17 @@ from queue import Queue
 import time
 
 
+COMMON_FRAME_SIZE = {
+    "1920*1080": (1920, 1080),
+    "1280*720": (1280, 720),
+    "720*480": (720, 480),
+    "640*480": (640, 480),
+    "320*240": (320, 240)
+}
+COMMON_FRAME_SIZE_REVERSE = {j:i for i,j in COMMON_FRAME_SIZE.items()}
+COMMON_FRAME_RATE = [10, 20, 24, 25, 30, 50, 60, 120]
+
+
 class MyThread(QThread):
 
     def __init__(self, target):
@@ -137,18 +148,14 @@ class CamEditor(QDialog):
 
         self.resize(457, 480)
         self.verticalLayout_2 = QVBoxLayout(self)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout = QVBoxLayout()
-        self.verticalLayout.setObjectName(u"verticalLayout")
         self.CameraReturn = Canvas(self)
         self.CameraReturn.setObjectName(u"CameraReturn")
 
         self.verticalLayout.addWidget(self.CameraReturn)
 
         self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.label_2 = QLabel(self)
-        self.label_2.setObjectName(u"label_2")
 
         self.horizontalLayout_2.addWidget(self.label_2)
 
@@ -157,21 +164,62 @@ class CamEditor(QDialog):
         self.horizontalLayout_2.addItem(self.horizontalSpacer)
 
         self.pushButton_2 = QPushButton(self)
-        self.pushButton_2.setObjectName(u"pushButton_2")
         self.pushButton_2.setMinimumSize(QSize(100, 0))
         self.pushButton_2.setMaximumSize(QSize(100, 16777215))
 
+        self.showWindowCheckBox = QCheckBox("Show Window", self)
+        self.value_copy["show window"] = value.get("show window", True)
+        self.showWindowCheckBox.setChecked(self.value["show window"])
+        self.showWindowCheckBox.clicked.connect(self.show_window_set)
+
+        self.saveCheckBox = QCheckBox("Save", self)
+        self.value_copy["save"] = value.get("save", True)
+        self.saveCheckBox.setChecked(self.value["save"])
+        self.saveCheckBox.clicked.connect(self.save_set)
+
         self.horizontalLayout_2.addWidget(self.pushButton_2)
+        self.horizontalLayout_2.addWidget(self.showWindowCheckBox)
+        self.horizontalLayout_2.addWidget(self.saveCheckBox)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.label_3 = QLabel("Frame Rate:", self)
+        self.FrameRateCombo = QComboBox(self)
+        for _frame_rate in COMMON_FRAME_RATE:
+            self.FrameRateCombo.addItem(str(_frame_rate))
+        _fr = value.get("frame rate", 30)
+        self.value_copy["frame rate"] = _fr
+        self.FrameRateCombo.setCurrentText(str(_fr))
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.label_4 = QLabel("Frame Size:", self)
+        self.FrameSizeCombo = QComboBox(self)
+        for _frame_size in COMMON_FRAME_SIZE.keys():
+            self.FrameSizeCombo.addItem(_frame_size)
+        _fs = value.get("frame size", (640, 480))
+        self.FrameSizeCombo.setCurrentText(COMMON_FRAME_SIZE_REVERSE.get(_fs, "640*480"))
+        self.value_copy["frame size"] = COMMON_FRAME_SIZE[self.FrameSizeCombo.currentText()]
+
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.FrameRateCombo.setSizePolicy(sizePolicy)
+        self.FrameSizeCombo.setSizePolicy(sizePolicy)
+
+        self.FrameRateCombo.currentTextChanged.connect(self.frame_rate_change)
+        self.FrameSizeCombo.currentTextChanged.connect(self.frame_size_change)
+
+        self.horizontalLayout_3.addWidget(self.label_3)
+        self.horizontalLayout_3.addWidget(self.FrameRateCombo)
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
+        self.horizontalLayout_3.addWidget(self.label_4)
+        self.horizontalLayout_3.addWidget(self.FrameSizeCombo)
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
+
         self.scrollArea = QScrollArea(self)
-        self.scrollArea.setObjectName(u"scrollArea")
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
-        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
         self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 435, 194))
         self.verticalLayout_3 = QVBoxLayout(self.scrollAreaWidgetContents)
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
 
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
@@ -253,6 +301,12 @@ class CamEditor(QDialog):
             pt2 = max(self.roi_pt1[0], roi_pt2[0]), max(self.roi_pt1[1], roi_pt2[1])
             self.value_copy["ROI"] = [pt1, pt2]
 
+    def show_window_set(self):
+        self.value_copy["show window"] = self.showWindowCheckBox.isChecked()
+
+    def save_set(self):
+        self.value_copy["save"] = self.saveCheckBox.isChecked()
+
     def release_mouse(self, _x, _y):
         if self.img is not None and self.editing_roi:
             roi_pt2 = self.cor_transform(_x, _y)
@@ -290,9 +344,9 @@ class CamEditor(QDialog):
         QMessageBox.critical(self, "Camera Error", f"The camera (ID = {self.value['ID']}) cannot be connected.")
 
     def camera_init(self):
-        self.vd.set(cv2.CAP_PROP_FPS, 20)
-        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
-        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.vd.set(cv2.CAP_PROP_FPS, self.value_copy["frame rate"])
+        self.vd.set(cv2.CAP_PROP_FRAME_WIDTH, self.value_copy["frame size"][0])
+        self.vd.set(cv2.CAP_PROP_FRAME_HEIGHT, self.value_copy["frame size"][1])
         for key, value in self.scroll_item.items():
             value[0].setValue(self.value[key])
             value[1].setValue(self.value[key])
@@ -320,6 +374,20 @@ class CamEditor(QDialog):
 
         self.vd.set(value_array[2], value_array[0].value())
         self.value_copy[key] = value_array[0].value()
+
+    def frame_rate_change(self):
+        self.value_copy["frame rate"] = int(self.FrameRateCombo.currentText())
+        self.stop_video = True
+        self.camera_del()
+        self.start_video()
+        self.value_copy["frame rate"] = int(self.vd.get(cv2.CAP_PROP_FPS))
+        self.FrameRateCombo.setCurrentText(str(self.value_copy["frame rate"]))
+
+    def frame_size_change(self):
+        self.value_copy["frame size"] = COMMON_FRAME_SIZE[self.FrameSizeCombo.currentText()]
+        self.stop_video = True
+        self.camera_del()
+        self.start_video()
 
     def spin_value_change(self, key, value_array):
         if value_array[3]:
@@ -419,7 +487,13 @@ class MCam:
             "gain": 6,
             "white balance": 4000,         # 3000-7000
             "gamma": 128,      # what's the range? ...
-            "ROI": None
+            "ROI": None,
+
+            "frame size": (720, 480),
+            "frame rate": 20,
+
+            "show window": True,
+            "save": True
         },
 
         "quote": set()
@@ -436,7 +510,6 @@ class MCam:
         self._folder = ""
 
         self._vd = None
-        self._show_window = False
         self._img_queue = Queue(50)  # the maximum buffered frame number is 50, frames will be lost if surpassing this number
         self._img_count = 0
         self._save_batch_count = 0
@@ -447,6 +520,10 @@ class MCam:
         self._window.my_resized.connect(self._window.set_size)
         self._window.img_updated.connect(self._window.update_img)
         self._window.to_close.connect(self._window.close)
+
+        self._show_window = self._value.get("show window", True)
+        self._save = self._value.get("save", True)
+
         self.current_img = None
         self._ready = False
 
@@ -455,17 +532,19 @@ class MCam:
     def set_record(self, _record):
         self._record = _record
 
-    def run(self, folder: str, show_window=True):
+    def run(self, folder: str):
         self._folder = folder
-        if not os.path.isdir(self._folder):
-            os.mkdir(self._folder)
+        if self._save:
+            if not os.path.isdir(self._folder):
+                os.mkdir(self._folder)
 
         self._vd = cv2.VideoCapture(self._value["ID"])
         if self._vd.isOpened():
             self._recording = True
 
-            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
-            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            self._vd.set(cv2.CAP_PROP_FPS, self._value["frame rate"])
+            self._vd.set(cv2.CAP_PROP_FRAME_WIDTH, self._value["frame size"][0])
+            self._vd.set(cv2.CAP_PROP_FRAME_HEIGHT, self._value["frame size"][1])
             for _key, _value in CAMERA_VALUES.items():
                 self._vd.set(_value[2], self._value[_key])
             self._vd.set(cv2.CAP_PROP_FPS, 20)
@@ -473,8 +552,6 @@ class MCam:
 
             threading.Thread(target=self._cam_tick).start()
             threading.Thread(target=self._cam_save).start()
-
-            self._show_window = show_window
 
             if self._show_window:
                 _x0, _x1, _y0, _y1, _w, _h = self.get_wh()
@@ -509,64 +586,79 @@ class MCam:
         return _x0, _x1, _y0, _y1, _w, _h
 
     def _cam_save(self):
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
-        time_stamp_file_name = os.path.join(self._folder, "timestamp.csv")
-        self._record.append_data_accessory("MCam", (file_name, time_stamp_file_name))
-        _x0, _x1, _y0, _y1, _w, _h = self.get_wh()
-        _f = cv2.VideoWriter(file_name, fourcc, 20, (_w, _h))
+        if self._save:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
+            time_stamp_file_name = os.path.join(self._folder, "timestamp.csv")
+            self._record.append_data_accessory("MCam", (file_name, time_stamp_file_name))
+            _x0, _x1, _y0, _y1, _w, _h = self.get_wh()
+            _f = cv2.VideoWriter(file_name, fourcc, 20, (_w, _h))
 
-        while self._recording:
-            try:
-                _current_img = self._img_queue.get(block=True, timeout=0.04)
-            except queue.Empty:
-                continue
-            if _current_img is not None:
+            while self._recording:
+                try:
+                    _current_img = self._img_queue.get(block=True, timeout=0.04)
+                except queue.Empty:
+                    continue
+                if _current_img is not None:
+                    _img = _current_img[1]
+                    if self._value["ROI"] is not None:
+                        _img = _img[_y0:_y1, _x0:_x1, :]
+                    self.current_img = _img
+                    self._ready = True
+                    _f.write(_img)
+                    self._time_stamp.append(_current_img[0])
+                    self._img_count += 1
+                if self._img_count == 1000:
+                    _f.release()
+                    del _f
+                    gc.collect()
+                    self._img_count = 0
+                    self._save_batch_count += 1
+                    file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
+                    _f = cv2.VideoWriter(file_name, fourcc, 20, (_w, _h))
+
+            while not self._img_queue.empty():
+                try:
+                    _current_img = self._img_queue.get(block=True, timeout=0.04)
+                except queue.Empty:
+                    continue
                 _img = _current_img[1]
                 if self._value["ROI"] is not None:
                     _img = _img[_y0:_y1, _x0:_x1, :]
-                self.current_img = _img
-                self._ready = True
                 _f.write(_img)
                 self._time_stamp.append(_current_img[0])
                 self._img_count += 1
-            if self._img_count == 1000:
-                _f.release()
-                del _f
-                gc.collect()
-                self._img_count = 0
-                self._save_batch_count += 1
-                file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
-                _f = cv2.VideoWriter(file_name, fourcc, 20, (_w, _h))
+                if self._img_count == 1000:
+                    _f.release()
+                    del _f
+                    gc.collect()
+                    self._img_count = 0
+                    self._save_batch_count += 1
+                    file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
+                    _f = cv2.VideoWriter(file_name, fourcc, 20, (_w, _h))
 
-        while not self._img_queue.empty():
-            try:
-                _current_img = self._img_queue.get(block=True, timeout=0.04)
-            except queue.Empty:
-                continue
-            _img = _current_img[1]
-            if self._value["ROI"] is not None:
-                _img = _img[_y0:_y1, _x0:_x1, :]
-            _f.write(_img)
-            self._time_stamp.append(_current_img[0])
-            self._img_count += 1
-            if self._img_count == 1000:
-                _f.release()
-                del _f
-                gc.collect()
-                self._img_count = 0
-                self._save_batch_count += 1
-                file_name = os.path.join(self._folder, str(self._save_batch_count)+".mp4")
-                _f = cv2.VideoWriter(file_name, fourcc, 20, (_w, _h))
+            _f.release()
 
-        _f.release()
+            time_stamp_record = "Frame ID,Relative Time (s)"
+            for _t, _ts in enumerate(self._time_stamp):
+                time_stamp_record += "\n" + str(_t+1) + "," + str(_ts)
 
-        time_stamp_record = "Frame ID,Relative Time (s)"
-        for _t, _ts in enumerate(self._time_stamp):
-            time_stamp_record += "\n" + str(_t+1) + "," + str(_ts)
+            with open(time_stamp_file_name, 'w') as f:
+                f.write(time_stamp_record)
+        else:
+            _x0, _x1, _y0, _y1, _w, _h = self.get_wh()
 
-        with open(time_stamp_file_name, 'w') as f:
-            f.write(time_stamp_record)
+            while self._recording:
+                try:
+                    _current_img = self._img_queue.get(block=True, timeout=0.04)
+                except queue.Empty:
+                    continue
+                if _current_img is not None:
+                    _img = _current_img[1]
+                    if self._value["ROI"] is not None:
+                        _img = _img[_y0:_y1, _x0:_x1, :]
+                    self.current_img = _img
+                    self._ready = True
 
     def _update_window(self):
         while self._recording:

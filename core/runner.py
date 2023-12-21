@@ -146,10 +146,10 @@ class Runner:
             _erroneous = True
             _error_message = e.args[0]
             self._is_running = False
-            _record.log('System Event', 'Error Encountered', f"Error at '{_current_node_name}': \nERROR MESSAGE: {_error_message}\nRunning aborted.")
+            _record.log('System Event', 'Error Encountered', f"Error at '{_current_node_name}': ERROR MESSAGE - {_error_message}; DETAIL: {e.args[1]}; Running aborted.")
             _record.save()
             self._interface.run_end.emit()
-            return False, f"Error at '{_current_node_name}': \nERROR MESSAGE: {_error_message}\nRunning aborted."
+            return False, f"Error at '{_current_node_name}': ERROR MESSAGE - {_error_message}; DETAIL: {e.args[1]}; Running aborted."
 
     def run(self, record_dict, _compiled_variables):
         """
