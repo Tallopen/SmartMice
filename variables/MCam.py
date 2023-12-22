@@ -17,6 +17,8 @@ from PyQt6.QtWidgets import *
 from queue import Queue
 import time
 
+import numpy as np
+
 
 COMMON_FRAME_SIZE = {
     "1920*1080": (1920, 1080),
@@ -122,19 +124,34 @@ class VideoTick(QThread):
 
     img_change = pyqtSignal()
 
-    def __init__(self, master):
+    def __init__(self, master, use_optical_flow):
 
         super(VideoTick, self).__init__()
         self.master = master
+        self.last_img = None
+        self.use_optical_flow = use_optical_flow
 
     def run(self):
+        _img = None
         while not self.master.stop_video:
+            self.last_img = _img
             _img = self.master.vd.read()
             if _img[0]:
-                rgb_img = cv2.cvtColor(_img[1], cv2.COLOR_BGR2RGB)
+                _img = _img[1]
+                if self.use_optical_flow and self.last_img is not None:
+                    flow = cv2.calcOpticalFlowFarneback(cv2.cvtColor(self.last_img, cv2.COLOR_BGR2GRAY), cv2.cvtColor(_img, cv2.COLOR_BGR2GRAY), None, 0.05, 1, 30, 1, 1, 150, 1)
+                    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+
+                    hsv = np.zeros_like(_img)
+                    hsv[:, :, 1] = 255
+                    hsv[..., 0] = ang * 180 / np.pi / 2
+                    hsv[..., 2] = mag * 5  #cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+                    rgb_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+                else:
+                    rgb_img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
                 self.master.img = rgb_img
                 self.img_change.emit()
-            time.sleep(0.04)
+            time.sleep(0.02)
         self.master.vd.release()
 
 
@@ -169,13 +186,18 @@ class CamEditor(QDialog):
 
         self.showWindowCheckBox = QCheckBox("Show Window", self)
         self.value_copy["show window"] = value.get("show window", True)
-        self.showWindowCheckBox.setChecked(self.value["show window"])
+        self.showWindowCheckBox.setChecked(self.value_copy["show window"])
         self.showWindowCheckBox.clicked.connect(self.show_window_set)
 
         self.saveCheckBox = QCheckBox("Save", self)
         self.value_copy["save"] = value.get("save", True)
-        self.saveCheckBox.setChecked(self.value["save"])
+        self.saveCheckBox.setChecked(self.value_copy["save"])
         self.saveCheckBox.clicked.connect(self.save_set)
+
+        self.ofCheckBox = QCheckBox("Use Optical Flow", self)
+        self.value_copy["optic flow"] = value.get("optic flow", False)
+        self.ofCheckBox.setChecked(self.value_copy["optic flow"])
+        self.ofCheckBox.clicked.connect(self.of_set)
 
         self.horizontalLayout_2.addWidget(self.pushButton_2)
         self.horizontalLayout_2.addWidget(self.showWindowCheckBox)
@@ -213,6 +235,7 @@ class CamEditor(QDialog):
         self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
         self.horizontalLayout_3.addWidget(self.label_4)
         self.horizontalLayout_3.addWidget(self.FrameSizeCombo)
+        self.horizontalLayout_3.addWidget(self.ofCheckBox)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
 
         self.scrollArea = QScrollArea(self)
@@ -280,6 +303,11 @@ class CamEditor(QDialog):
         self.editing_roi = False
         self.roi_pt1 = ()
 
+    def of_set(self):
+        self.value_copy["optic flow"] = self.ofCheckBox.isChecked()
+        if not self.stop_video:
+            self._v.use_optical_flow = self.value_copy["optic flow"]
+
     def cor_transform(self, _x, _y):
         _h = self.img.shape[0]
         _w = self.img.shape[1]
@@ -335,7 +363,7 @@ class CamEditor(QDialog):
                 self.stop_video = False
                 self.camera_init()
 
-                self._v = VideoTick(self)
+                self._v = VideoTick(self, self.value_copy["optic flow"])
                 self._v.img_change.connect(self.video_tick)
                 self._v.start()
 
@@ -493,7 +521,8 @@ class MCam:
             "frame rate": 20,
 
             "show window": True,
-            "save": True
+            "save": True,
+            "optic flow": False
         },
 
         "quote": set()
@@ -523,6 +552,7 @@ class MCam:
 
         self._show_window = self._value.get("show window", True)
         self._save = self._value.get("save", True)
+        self._optic_flow = self._value.get("optic flow", False)
 
         self.current_img = None
         self._ready = False

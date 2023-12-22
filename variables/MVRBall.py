@@ -513,10 +513,6 @@ class VRBallEditor(QDialog):
         self.rotAxisLabel.setText("({:.3f}, {:.3f}, {:.3f})".format(_rot_axis[0], _rot_axis[1], _rot_axis[2]))
         self.rotAngleLabel.setText("{:.1f}".format(_rot_angle))
 
-        # _q1 = self.quaternion_history[2] / self.quaternion_history[0]
-        # _q2 = self.quaternion_history[3] / self.quaternion_history[1]
-        # _q_prime = (_q1 * _q2).sqrt()
-        # _t_prime = ((self.time_stamp[2] - self.time_stamp[0]) + (self.time_stamp[3] - self.time_stamp[1])) / 2
         _t_prime = (self.time_stamp[3] - self.time_stamp[2])
         _q_prime = self.quaternion_history[3] / self.quaternion_history[2]
 
@@ -528,7 +524,6 @@ class VRBallEditor(QDialog):
 
         self.rollSpeedLabel.setText("{:.2f}".format(lspeed_x))
         self.yawSpeedLabel.setText("{:.2f}".format(lspeed_y))
-        # self.pitchSpeedLabel.setText("{:.1f}".format(euler_alter[2]))
 
         if abs(lspeed_x) < 0.5:
             lspeed_x = 0
