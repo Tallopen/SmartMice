@@ -23,6 +23,8 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
+import cv2
+
 import numpy as np
 import quaternion
 
@@ -36,6 +38,17 @@ BALL_UDP_PORT = 4514
 
 def rotate_vector_2d(x, y, theta):
     return f"{round(x*np.cos(theta) - y*np.sin(theta), 3)},{round(x*np.sin(theta) + y*np.cos(theta), 3)}"
+
+
+class MyThread(QThread):
+
+    def __init__(self, target):
+
+        super(QThread, self).__init__()
+        self._foo = target
+
+    def run(self):
+        self._foo()
 
 
 class VRBallVisualizer(QOpenGLWidget):
@@ -92,45 +105,48 @@ class VRBallVisualizer(QOpenGLWidget):
         glEnable(GL_COLOR_MATERIAL)
 
     def paintGL(self) -> None:
-        if self.q.norm() > 0:
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        try:
+            if self.q.norm() > 0:
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-            glMatrixMode(GL_MODELVIEW)
-            glLoadIdentity()
-            gluLookAt(8, 0, 0, 0, 0, 0, 0, 1, 0)
+                glMatrixMode(GL_MODELVIEW)
+                glLoadIdentity()
+                gluLookAt(8, 0, 0, 0, 0, 0, 0, 1, 0)
 
-            _main_axis_dots = quaternion.rotate_vectors(self.q, self.main_axis_dots)
-            _latitude_dots = quaternion.rotate_vectors(self.q, self.latitude_dots)
-            _x_axis_dots = quaternion.rotate_vectors(self.q, self.x_axis_dots)
-            _triangle_dots = quaternion.rotate_vectors(self.q, self.triangle_dots)
+                _main_axis_dots = quaternion.rotate_vectors(self.q, self.main_axis_dots)
+                _latitude_dots = quaternion.rotate_vectors(self.q, self.latitude_dots)
+                _x_axis_dots = quaternion.rotate_vectors(self.q, self.x_axis_dots)
+                _triangle_dots = quaternion.rotate_vectors(self.q, self.triangle_dots)
 
-            glColor3f(0.5, 1.0, 1.0)
-            glPointSize(3)
+                glColor3f(0.5, 1.0, 1.0)
+                glPointSize(3)
 
-            glBegin(GL_POINTS)
-            for dot in _main_axis_dots:
-                glVertex3f(-dot[1], -dot[2], -dot[0])
-            glEnd()
+                glBegin(GL_POINTS)
+                for dot in _main_axis_dots:
+                    glVertex3f(-dot[1], -dot[2], -dot[0])
+                glEnd()
 
-            glPointSize(1)
-            glColor3f(1.0, 1.0, 1.0)
-            glBegin(GL_POINTS)
-            for dot in _latitude_dots:
-                glVertex3f(-dot[1], -dot[2], -dot[0])
-            glEnd()
+                glPointSize(1)
+                glColor3f(1.0, 1.0, 1.0)
+                glBegin(GL_POINTS)
+                for dot in _latitude_dots:
+                    glVertex3f(-dot[1], -dot[2], -dot[0])
+                glEnd()
 
-            glColor3f(0.3, 0.3, 1.0)
-            glPointSize(4)
-            glBegin(GL_POINTS)
-            for dot in _x_axis_dots:
-                glVertex3f(-dot[1], -dot[2], -dot[0])
-            glEnd()
+                glColor3f(0.3, 0.3, 1.0)
+                glPointSize(4)
+                glBegin(GL_POINTS)
+                for dot in _x_axis_dots:
+                    glVertex3f(-dot[1], -dot[2], -dot[0])
+                glEnd()
 
-            glColor3f(0.3, 1.0, 0.3)
-            glBegin(GL_TRIANGLES)
-            for dot in _triangle_dots:
-                glVertex3f(-dot[1], -dot[2], -dot[0])
-            glEnd()
+                glColor3f(0.3, 1.0, 0.3)
+                glBegin(GL_TRIANGLES)
+                for dot in _triangle_dots:
+                    glVertex3f(-dot[1], -dot[2], -dot[0])
+                glEnd()
+        except Exception as e:
+            pass
 
     def resizeGL(self, w: int, h: int) -> None:
         glViewport(0, 0, w, h)
@@ -153,6 +169,12 @@ class VRBallEditor(QDialog):
         super(VRBallEditor, self).__init__()
 
         self.setWindowTitle("VR ball pose detection settings for "+var_name)
+
+        # find all camera variables and add to combo box
+        self.Cams = dict()
+        for var_name, var_content in ass.items():
+            if var_content["type"] == "MCam":
+                self.Cams[var_name] = var_content["value"]
 
         self.resize(700, 500)
         # below are codes generating the GUI
@@ -243,6 +265,22 @@ class VRBallEditor(QDialog):
         self.line.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.verticalLayout_2.addWidget(self.line)
+
+        self.allowRuntimeCorrectionCheckBox = QCheckBox("Runtime Correction")
+        self.verticalLayout_2.addWidget(self.allowRuntimeCorrectionCheckBox)
+
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.label_8 = QLabel("Camera:   ")
+        self.cameraCombo = QComboBox(self)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.cameraCombo.setSizePolicy(sizePolicy2)
+
+        for camVarName in self.Cams.keys():
+            self.cameraCombo.addItem(camVarName)
+
+        self.horizontalLayout_6.addWidget(self.label_8)
+        self.horizontalLayout_6.addWidget(self.cameraCombo)
+        self.verticalLayout_2.addItem(self.horizontalLayout_6)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -475,6 +513,25 @@ class VRBallEditor(QDialog):
         if self._value["COM"] in self._port_name_list:
             self.portCombo.setCurrentText(self._value["COM"])
 
+        self._value["runtime correction"] = self._value.get("runtime correction", False)
+        self.allowRuntimeCorrectionCheckBox.setChecked(self._value["runtime correction"])
+        self.cameraCombo.setEnabled(self._value["runtime correction"])
+
+        self.allowRuntimeCorrectionCheckBox.clicked.connect(self.allow_runtime_correction_change)
+
+        self._value["source"] = self._value.get("source", None)
+        if self._value["source"] is not None:
+            self.cameraCombo.setCurrentText(self._value["source"])
+
+        self.cameraCombo.currentTextChanged.connect(self.camera_change)
+
+    def allow_runtime_correction_change(self):
+        self._value["runtime correction"] = self.allowRuntimeCorrectionCheckBox.isChecked()
+        self.cameraCombo.setEnabled(self._value["runtime correction"])
+
+    def camera_change(self):
+        self._value["source"] = self.cameraCombo.currentText()
+
     def scan(self):
         _ports = list_ports.comports()
         self._port_name_list = []
@@ -596,7 +653,10 @@ class VRBallEditor(QDialog):
                         "yaw-scale": self.yawScalingSpin.value(),
                         "pitch-scale": self.pitchScalingSpin.value(),
                         "roll-scale": self.rollScalingSpin.value(),
-                        "rotate": self.rotateSpin.value()
+                        "rotate": self.rotateSpin.value(),
+
+                        "runtime correction": self._value["runtime correction"],
+                        "source": self._value["source"]
                     }, _v
 
         return None, _v
@@ -713,6 +773,101 @@ class RunTimeVRBall(QThread):
             pass
 
 
+class Canvas(QGraphicsView):
+    resized = pyqtSignal()
+
+    def __init__(self, master, *args):
+        super(Canvas, self).__init__(*args)
+
+        self.master = master
+        self.ready = False
+        self.pressed_button = None
+        self.setMouseTracking(True)
+
+        self.q_scene = QGraphicsScene()
+        self.q_pix_item = QGraphicsPixmapItem()
+        self.q_pix_item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
+        self.q_scene.addItem(self.q_pix_item)
+        self.setScene(self.q_scene)
+
+        self.pixmap = None
+
+        self.prev_mouse_pos = QPointF(0, 0)
+
+    def draw_pixmap(self, pixmap):
+        self.pixmap = pixmap
+        self.q_pix_item.setPixmap(self.pixmap)
+
+    def resizeEvent(self, a0: QResizeEvent) -> None:
+        if self.ready:
+            self.q_scene = QGraphicsScene()
+            self.q_pix_item = QGraphicsPixmapItem()
+            self.q_pix_item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
+            if self.pixmap is not None:
+                self.q_pix_item.setPixmap(self.pixmap.scaled(self.width()-2, self.height()-2))
+            self.q_scene.addItem(self.q_pix_item)
+            self.setScene(self.q_scene)
+            self.resized.emit()
+        return super(Canvas, self).resizeEvent(a0)
+
+
+class CorrectionWindow(QWidget):
+
+    my_resized = pyqtSignal(int, int)
+    img_updated = pyqtSignal(object)
+    to_close = pyqtSignal()
+    direction_corrected = pyqtSignal(float)
+
+    def __init__(self, title, vrball: RunTimeVRBall):
+
+        super(CorrectionWindow, self).__init__()
+        self.vrball = vrball
+
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.setSpacing(0)
+        self.CameraReturn = Canvas(self)
+
+        self.verticalLayout.addWidget(self.CameraReturn)
+
+        self.horizontalLayout = QHBoxLayout()
+
+        self.angleSlider = QSlider(Qt.Orientation.Horizontal)
+        self.angleSlider.setMaximum(720)
+        self.angleSlider.setMinimum(0)
+        MySizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.angleSlider.setSizePolicy(MySizePolicy)
+        self.angleSlider.setValue(self.vrball.rotate)
+        self.angleSlider.setSingleStep(1)
+
+        self.angleLabel = QLabel(str(round(self.vrball.rotate,1)))
+        self.angleLabel.setMinimumWidth(70)
+        self.horizontalLayout.addWidget(self.angleSlider)
+        self.horizontalLayout.addWidget(self.angleLabel)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+
+        self.angleSlider.valueChanged.connect(self.slider_value_change)
+
+        self.setWindowTitle(title)
+
+    def slider_value_change(self):
+        new_value = self.angleSlider.value()
+        self.angleLabel.setText(str(round(new_value, 1)))
+        self.vrball.rotate = new_value
+
+    def update_value(self):
+        self.angleSlider.setValue(self.vrball.rotate)
+        self.angleLabel.setText(str(round(self.vrball.rotate,1)))
+
+    def set_size(self, _w, _h):
+        self.resize(_w, _h)
+        self.show()
+
+    def update_img(self, img):
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pix_map = QPixmap(QImage(img, img.shape[1], img.shape[0], img.shape[1]*img.shape[2], QImage.Format.Format_RGB888)).scaled(self.CameraReturn.width()-2, self.CameraReturn.height()-2)
+        self.CameraReturn.draw_pixmap(pix_map)
+
+
 class MVRBall:
 
     requirements = {
@@ -737,6 +892,9 @@ class MVRBall:
             "pitch-scale": 0.05,
             "roll-scale": 0.05,
             "rotate": 0,
+
+            "runtime correction": False,
+            "source": None
         },
         "quote": set()
     }
@@ -754,16 +912,45 @@ class MVRBall:
 
         self.vr_ball = RunTimeVRBall()
 
+        self._runtime_correction = self._value.get("runtime correction", False)
+        self.cam = None
+        if self._runtime_correction:
+            self._correction_window = CorrectionWindow(self._name, self.vr_ball)
+            self._correction_window.my_resized.connect(self._correction_window.set_size)
+            self._correction_window.img_updated.connect(self._correction_window.update_img)
+            self._correction_window.to_close.connect(self._correction_window.close)
+
+        self._running = False
+
     def start(self):
+        if self._runtime_correction:
+            self.cam = self.variable[self._value["source"]]
+
         self.vr_ball.connect_to_port(self._value["COM"], [
            self._value["yaw-scale"],
            self._value["pitch-scale"],
            self._value["roll-scale"]
         ], self._value.get("rotate", 0))
         self.vr_ball.start()
+        self._running = True
+
+        if self._runtime_correction:
+            self._correction_window.CameraReturn.ready = True
+            _x0, _x1, _y0, _y1, _w, _h = self.cam.get_wh()
+            self._correction_window.update_value()
+            self._correction_window.my_resized.emit(_w, _h)
+            self._t1 = MyThread(target=self._update_window)
+            self._t1.start()
 
     def stop(self):
         self.vr_ball.stop()
+        self._running = False
 
     def set_record(self, _record):
         self._record = _record
+
+    def _update_window(self):
+        while self._running:
+            self._correction_window.img_updated.emit(self.cam.current_img)
+            time.sleep(0.03)
+        self._correction_window.to_close.emit()

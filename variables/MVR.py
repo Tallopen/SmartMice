@@ -113,8 +113,14 @@ class MVR(QObject):
     def cancel_last_reward(self):
         self.write_message(f"NR")
 
+    def set_rotation_angle(self, angle):
+        self.write_message(f"RT,{angle}")
+
     def set_all_wall_black(self):
         self.write_message(f"CR")
+
+    def send_on_signal(self):
+        self.write_message(f"ON")
 
 
 """
