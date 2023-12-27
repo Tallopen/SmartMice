@@ -836,10 +836,10 @@ class CorrectionWindow(QWidget):
         self.angleSlider.setMinimum(0)
         MySizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.angleSlider.setSizePolicy(MySizePolicy)
-        self.angleSlider.setValue(self.vrball.rotate)
+        self.angleSlider.setValue(self.vrball.rotate*180/np.pi)
         self.angleSlider.setSingleStep(1)
 
-        self.angleLabel = QLabel(str(round(self.vrball.rotate,1)))
+        self.angleLabel = QLabel(str(round(self.vrball.rotate*180/np.pi,1)))
         self.angleLabel.setMinimumWidth(70)
         self.horizontalLayout.addWidget(self.angleSlider)
         self.horizontalLayout.addWidget(self.angleLabel)
@@ -852,11 +852,11 @@ class CorrectionWindow(QWidget):
     def slider_value_change(self):
         new_value = self.angleSlider.value()
         self.angleLabel.setText(str(round(new_value, 1)))
-        self.vrball.rotate = new_value
+        self.vrball.rotate = new_value/180*np.pi
 
     def update_value(self):
-        self.angleSlider.setValue(self.vrball.rotate)
-        self.angleLabel.setText(str(round(self.vrball.rotate,1)))
+        self.angleSlider.setValue(self.vrball.rotate*180/np.pi)
+        self.angleLabel.setText(str(round(self.vrball.rotate*180/np.pi,1)))
 
     def set_size(self, _w, _h):
         self.resize(_w, _h)
