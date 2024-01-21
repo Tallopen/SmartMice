@@ -45,5 +45,5 @@ class SetArenaRotationNode(BaseNode):
         super(SetArenaRotationNode, self).__init__(runtime_dict)
 
     def run(self, _record):
-        self.runtime["var"]["VR"].set_rotation_angle(self.runtime["var"]["size"].get_value())
+        self.runtime["var"]["VR"].set_rotation_angle(self.runtime["var"]["rotation angle"].get_value())
         return self.runtime["jump"]["Done"]

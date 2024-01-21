@@ -114,7 +114,7 @@ class MVR(QObject):
         self.write_message(f"NR")
 
     def set_rotation_angle(self, angle):
-        self.write_message(f"RT,{angle}")
+        self.write_message(f"RT,{int(angle)}")
 
     def set_all_wall_black(self):
         self.write_message(f"CR")
