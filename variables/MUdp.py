@@ -17,7 +17,7 @@ class UDPClient(QThread):
 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.client_socket.bind((LOCAL_IP, value))
-        self.client_socket.settimeout(1)
+        self.client_socket.settimeout(500)
 
         self.running = True
         self.data = []
